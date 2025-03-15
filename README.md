@@ -6,7 +6,7 @@ Clone repository ini dan masuk ke direktori autoinstall:
 
 bash
 Copy
-git clone https://github.com/PemburuSurya/autoinstall.git
+```git clone https://github.com/PemburuSurya/autoinstall.git```
 cd autoinstall
 Skrip yang Tersedia
 1. Squid Proxy
