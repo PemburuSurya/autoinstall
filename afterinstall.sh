@@ -27,10 +27,10 @@ sudo apt install docker-ce docker-ce-cli containerd.io -y
 # Mengunduh versi terbaru Docker Compose dari GitHub API
 echo "Mengunduh Docker Compose..."
 VER=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)
-curl -L "https://github.com/docker/compose/releases/download/$VER/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo curl -L "https://github.com/docker/compose/releases/download/$VER/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 
 # Memberikan izin eksekusi pada binary Docker Compose
-chmod +x /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
 # Tambahkan pengguna saat ini ke grup Docker
 echo "Menambahkan pengguna ke grup Docker..."
@@ -59,7 +59,7 @@ echo "Mengaktifkan dan memulai netfilter-persistent..."
 sudo systemctl enable netfilter-persistent
 sudo systemctl start netfilter-persistent
 
-# Install GO
+#Install GO
 cd $HOME && \
 ver="1.22.0" && \
 wget "https://golang.org/dl/go$ver.linux-amd64.tar.gz" && \
