@@ -76,16 +76,6 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
-# Hapus file resolv.conf
-sudo rm /etc/resolv.conf
-
-# Buat file resolv.conf baru dan tambahkan nameserver
-sudo bash -c 'echo "nameserver 8.8.8.8" > /etc/resolv.conf'
-sudo bash -c 'echo "nameserver 8.8.4.4" >> /etc/resolv.conf'
-
-# Lock file resolv.conf agar tidak bisa diubah
-sudo chattr +i /etc/resolv.conf
-
 # Unduh Anaconda installer
 cd /tmp
 echo "Mengunduh Anaconda installer..."
