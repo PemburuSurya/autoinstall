@@ -1,21 +1,57 @@
-git clone https://github.com/PemburuSurya/autoinstall.git && cd autoinstall && chmod +x squid.sh && ./squid.sh
+# AutoInstall Script
 
-**Change DNS & Add Virtual Memory:**
+AutoInstall adalah skrip otomatis untuk menginstal berbagai layanan seperti DNS Swap, Proxy Squid, Chromium, RDP, dan AdsPower. Skrip ini membantu mempermudah konfigurasi dengan hanya beberapa langkah sederhana.
+
+## Cara Menggunakan
+
+Clone repository ini dan pindah ke direktori autoinstall:
+
 ```bash
-chmod +x dns-swap.sh && ./dns-swap.sh
+git clone https://github.com/PemburuSurya/autoinstall.git
+cd autoinstall
+```
 
-**Proxy:**
+### Mengubah DNS & Menambah Virtual Memory
+
+Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
+
 ```bash
-chmod +x squid.sh && ./squid.sh
+chmod +x dns-swap.sh
+./dns-swap.sh
+```
 
-**Chromium**
+### Proxy Squid
+
+Menginstal dan mengonfigurasi proxy Squid:
+
 ```bash
-chmod +x chromium.sh && ./chromium.sh
+chmod +x squid.sh
+./squid.sh
+```
 
-**RDP & Ads Power**
+### Chromium
+
+Menginstal Chromium:
+
 ```bash
-chmod +x rdp-adspower.sh && ./rdp-adspower.sh
+chmod +x chromium.sh
+./chromium.sh
+```
 
+### RDP & AdsPower
 
+Menginstal RDP dan AdsPower:
 
-tolong perbaiki dan rapihkan readme.md github saya
+```bash
+chmod +x rdp-adspower.sh
+./rdp-adspower.sh
+```
+
+## Kontribusi
+
+Silakan buat *pull request* atau buka *issue* jika Anda menemukan bug atau ingin menambahkan fitur baru.
+
+## Lisensi
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).
+
