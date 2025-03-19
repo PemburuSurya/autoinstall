@@ -21,7 +21,7 @@ sudo swapoff -a
 
 # Buat swapfile baru dengan ukuran 64GB
 echo -e "\033[0;32mMembuat swapfile baru dengan ukuran 64GB...\033[0m"
-sudo fallocate -l 64G /swapfile
+sudo fallocate -l 16G /swapfile
 
 # Set permission swapfile agar hanya bisa diakses oleh root
 echo -e "\033[0;32mMengatur permission swapfile...\033[0m"
