@@ -59,16 +59,34 @@ echo "Mengaktifkan dan memulai netfilter-persistent..."
 sudo systemctl enable netfilter-persistent
 sudo systemctl start netfilter-persistent
 
-# Install GO
-cd $HOME && \
-ver="1.22.0" && \
-wget "https://golang.org/dl/go$ver.linux-amd64.tar.gz" && \
-sudo rm -rf /usr/local/go && \
-sudo tar -C /usr/local -xzf "go$ver.linux-amd64.tar.gz" && \
-rm "go$ver.linux-amd64.tar.gz" && \
-echo "export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin" >> ~/.bash_profile && \
-source ~/.bash_profile && \
-go version
+# Download Go 1.22.4 for Linux amd64
+GO_VERSION="1.22.4"
+GO_ARCH="linux-amd64"
+echo "Installing Go $GO_VERSION for $GO_ARCH..."
+curl -OL https://go.dev/dl/go$GO_VERSION.$GO_ARCH.tar.gz
+
+# Verify the downloaded file
+if file go$GO_VERSION.$GO_ARCH.tar.gz | grep -q "gzip compressed data"; then
+    echo "Go download verified successfully."
+else
+    echo "Failed to download Go. The file is not valid."
+    exit 1
+fi
+
+# Extract and install Go
+sudo tar -C /usr/local -xzf go$GO_VERSION.$GO_ARCH.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify Go installation
+if ! command -v go &> /dev/null; then
+    echo "Failed to install Go. Please check the installation."
+    exit 1
+else
+    echo "Go installed successfully."
+    go version
+fi
 
 # Instal Rust menggunakan rustup
 echo "Menginstal Rust..."
