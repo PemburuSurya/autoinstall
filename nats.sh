@@ -12,9 +12,20 @@ fi
 
 echo "Memulai instalasi NATS Server..."
 
+# Step 0: Instal Dependensi
+echo "Menginstal dependensi (unzip)..."
+apt update && apt install unzip -y
+
 # Step 1: Unduh Biner NATS Server
 echo "Mengunduh NATS Server..."
-wget -q --show-progress https://github.com/nats-io/nats-server/releases/latest/download/nats-server-linux-amd64.zip
+NATS_SERVER_URL="https://github.com/nats-io/nats-server/releases/download/v2.10.11/nats-server-v2.10.11-linux-amd64.zip"
+wget -q --show-progress "$NATS_SERVER_URL" -O nats-server-linux-amd64.zip
+
+# Cek apakah file berhasil diunduh
+if [[ ! -f "nats-server-linux-amd64.zip" ]]; then
+   echo "Gagal mengunduh NATS Server. Periksa koneksi internet atau URL."
+   exit 1
+fi
 
 # Step 2: Ekstrak Biner NATS Server
 echo "Mengekstrak NATS Server..."
@@ -23,7 +34,8 @@ rm -f nats-server-linux-amd64.zip
 
 # Step 3: Pindahkan Biner ke Direktori Sistem
 echo "Memindahkan biner ke /usr/local/bin/..."
-mv nats-server /usr/local/bin/
+mv nats-server-v2.10.11-linux-amd64/nats-server /usr/local/bin/
+chmod +x /usr/local/bin/nats-server
 
 # Step 4: Verifikasi Instalasi
 echo "Verifikasi instalasi..."
@@ -62,10 +74,19 @@ ss -tuln | grep 4222
 
 # Step 9: Instal NATS CLI (opsional)
 echo "Menginstal NATS CLI..."
-wget -q --show-progress https://github.com/nats-io/natscli/releases/latest/download/nats-linux-amd64.zip
+NATS_CLI_URL="https://github.com/nats-io/natscli/releases/download/v0.2.0/nats-0.2.0-linux-amd64.zip"
+wget -q --show-progress "$NATS_CLI_URL" -O nats-linux-amd64.zip
+
+# Cek apakah file berhasil diunduh
+if [[ ! -f "nats-linux-amd64.zip" ]]; then
+   echo "Gagal mengunduh NATS CLI. Periksa koneksi internet atau URL."
+   exit 1
+fi
+
 unzip -o nats-linux-amd64.zip
 rm -f nats-linux-amd64.zip
 mv nats /usr/local/bin/
+chmod +x /usr/local/bin/nats
 
 # Step 10: Tes Publikasi dan Subskripsi
 echo "Tes Subskripsi NATS..."
