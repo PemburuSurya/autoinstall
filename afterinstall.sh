@@ -32,6 +32,12 @@ curl -L "https://github.com/docker/compose/releases/download/$VER/docker-compose
 # Memberikan izin eksekusi pada binary Docker Compose
 chmod +x /usr/local/bin/docker-compose
 
+#Install Docker CLI plugin and make executable
+DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+mkdir -p $DOCKER_CONFIG/cli-plugins
+curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+
 # Tambahkan pengguna saat ini ke grup Docker
 echo "Menambahkan pengguna ke grup Docker..."
 sudo groupadd -f docker
