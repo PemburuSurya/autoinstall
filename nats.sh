@@ -83,9 +83,14 @@ if [[ ! -f "nats-linux-amd64.zip" ]]; then
    exit 1
 fi
 
+# Ekstrak NATS CLI
+echo "Mengekstrak NATS CLI..."
 unzip -o nats-linux-amd64.zip
 rm -f nats-linux-amd64.zip
-mv nats /usr/local/bin/
+
+# Pindahkan biner NATS CLI ke /usr/local/bin/
+echo "Memindahkan biner NATS CLI ke /usr/local/bin/..."
+mv nats-0.2.0-linux-amd64/nats /usr/local/bin/
 chmod +x /usr/local/bin/nats
 
 # Step 10: Tes Publikasi dan Subskripsi
