@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Update package list and install dependencies
-sudo apt-get update
+sudo apt update && sudo apt upgrade -y
 sudo apt-get install -y curl build-essential
 
 # Remove old Go installation
@@ -79,9 +79,9 @@ read -p "Enter your PRIVATE_KEY: " PRIVATE_KEY
 # Configure environment variables
 echo "Configuring environment variables..."
 cat <<EOL > .env
-GRPC_URL=grpc.testnet.layeredge.io:9090
+GRPC_URL=https://grpc.testnet.layeredge.io:9090
 CONTRACT_ADDR=cosmos1ufs3tlq4umljk0qfe8k5ya0x6hpavn897u2cnf9k0en9jr7qarqqt56709
-ZK_PROVER_URL=https://layeredge.mintair.xyz/
+ZK_PROVER_URL=http://127.0.0.1:3001
 API_REQUEST_TIMEOUT=100
 POINTS_API=https://light-node.layeredge.io
 PRIVATE_KEY=$PRIVATE_KEY
