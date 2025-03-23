@@ -11,6 +11,14 @@ git clone https://github.com/PemburuSurya/autoinstall.git
 cd autoinstall
 ```
 
+### Custom
+
+Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
+
+```bash
+chmod +x custom.sh
+./custom.sh
+
 ### Afterinstall
 
 Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
