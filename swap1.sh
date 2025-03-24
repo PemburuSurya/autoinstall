@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
+sudo umount /mnt/volume_sgp1_01
+
 # Hapus signature filesystem dari /dev/sda
 echo -e "\033[0;32mMenghapus signature filesystem dari /dev/sda...\033[0m"
 sudo wipefs --all /dev/sda
