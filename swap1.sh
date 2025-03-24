@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
+sudo apt update && sudo apt upgrade -y
+sudo apt install build-essential -y
+
 # Pastikan partisi swap tidak terpasang
 echo -e "\033[0;32mMemastikan swap tidak terpasang...\033[0m"
 sudo swapoff /dev/sda1 || true
