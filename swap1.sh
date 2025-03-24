@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
-sudo umount /mnt/volume_sgp1_01
+# Pastikan partisi swap tidak terpasang
+echo -e "\033[0;32mMemastikan swap tidak terpasang...\033[0m"
+sudo swapoff /dev/sda1 || true
 
 # Hapus signature filesystem dari /dev/sda
 echo -e "\033[0;32mMenghapus signature filesystem dari /dev/sda...\033[0m"
@@ -28,7 +30,7 @@ sudo mkswap /dev/sda1
 echo -e "\033[0;32mMengaktifkan swap...\033[0m"
 sudo swapon /dev/sda1
 
-# Tambahkan swap ke /etc/fstab
+# Menambahkan swap ke /etc/fstab untuk memastikan swap tetap aktif setelah reboot
 echo -e "\033[0;32mMenambahkan swap ke /etc/fstab...\033[0m"
 if ! grep -q "/dev/sda1" /etc/fstab; then
     echo '/dev/sda1 none swap sw 0 0' | sudo tee -a /etc/fstab
@@ -36,13 +38,13 @@ else
     echo -e "\033[0;33m/dev/sda1 sudah ada di /etc/fstab, melewati...\033[0m"
 fi
 
-# Set vm.overcommit_memory ke 1 secara langsung
-echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1...\033[0m"
+# Set vm.overcommit_memory ke 1 dan vm.swappiness ke 10 secara langsung
+echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 dan vm.swappiness ke 10...\033[0m"
 sudo sysctl -w vm.overcommit_memory=1
 sudo sysctl -w vm.swappiness=10
 
-# Set vm.overcommit_memory ke 1 secara permanen
-echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 secara permanen...\033[0m"
+# Set vm.overcommit_memory dan vm.swappiness secara permanen
+echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 dan vm.swappiness ke 10 secara permanen...\033[0m"
 echo 'vm.overcommit_memory=1' | sudo tee -a /etc/sysctl.conf
 echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 
@@ -64,6 +66,7 @@ sudo swapon --show
 echo -e "\033[0;36mPenggunaan memori dan swap:\033[0m"
 free -h
 
-# Selesai
-echo -e "\033[0;32mSemua proses telah selesai.\033[0m"
-echo -e "\033[0;32mProses selesai! Swap berhasil diatur.\033[0m"
+# Reboot untuk menerapkan perubahan jika Intel P-State diubah
+echo -e "\033[0;32mSelesai! Sistem akan reboot untuk menerapkan perubahan.\033[0m"
+echo -e "\033[0;32mPastikan swap dan pengaturan lainnya aktif setelah reboot.\033[0m"
+sudo reboot
