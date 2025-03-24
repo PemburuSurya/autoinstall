@@ -46,6 +46,17 @@ echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 secara permanen...\033[0m"
 echo 'vm.overcommit_memory=1' | sudo tee -a /etc/sysctl.conf
 echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 
+# Menonaktifkan Intel P-State jika diperlukan (opsional)
+echo -e "\033[0;32mMenonaktifkan Intel P-State (jika digunakan)...\033[0m"
+if grep -q "intel_pstate=disable" /etc/default/grub; then
+    echo -e "\033[0;32mIntel P-State sudah dinonaktifkan.\033[0m"
+else
+    echo -e "\033[0;32mMenonaktifkan Intel P-State...\033[0m"
+    sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_pstate=disable"/' /etc/default/grub
+    sudo update-grub
+    echo -e "\033[0;32mIntel P-State berhasil dinonaktifkan. Silakan reboot sistem.\033[0m"
+fi
+
 # Verifikasi swap
 echo -e "\033[0;32mMemverifikasi swap...\033[0m"
 echo -e "\033[0;36mInformasi swap:\033[0m"
