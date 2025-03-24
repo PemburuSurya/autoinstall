@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
+# Update dan upgrade sistem
 sudo apt update && sudo apt upgrade -y
 sudo apt install build-essential -y
 
@@ -45,21 +46,21 @@ fi
 echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 dan vm.swappiness ke 10...\033[0m"
 sudo sysctl -w vm.overcommit_memory=1
 sudo sysctl -w vm.swappiness=10
-sudo sysctl -w vm.dirty_ratio = 60
-sudo sysctl -w vm.dirty_background_ratio = 2
-sudo sysctl -w net.core.somaxconn = 65535
-sudo sysctl -w net.core.netdev_max_backlog = 65535
-sudo sysctl -w net.ipv4.tcp_max_syn_backlog = 65535
+sudo sysctl -w vm.dirty_ratio=60
+sudo sysctl -w vm.dirty_background_ratio=2
+sudo sysctl -w net.core.somaxconn=65535
+sudo sysctl -w net.core.netdev_max_backlog=65535
+sudo sysctl -w net.ipv4.tcp_max_syn_backlog=65535
 
 # Set vm.overcommit_memory dan vm.swappiness secara permanen
 echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 dan vm.swappiness ke 10 secara permanen...\033[0m"
 echo 'vm.overcommit_memory=1' | sudo tee -a /etc/sysctl.conf
 echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
-echo 'nvm.dirty_ratio = 60' | sudo tee -a /etc/sysctl.conf
-echo 'vm.dirty_background_ratio = 2' | sudo tee -a /etc/sysctl.conf
-echo 'net.core.somaxconn = 65535' | sudo tee -a /etc/sysctl.conf
-echo 'net.core.netdev_max_backlog = 65535' | sudo tee -a /etc/sysctl.conf
-echo 'net.ipv4.tcp_max_syn_backlog = 65535' | sudo tee -a /etc/sysctl.conf
+echo 'vm.dirty_ratio=60' | sudo tee -a /etc/sysctl.conf
+echo 'vm.dirty_background_ratio=2' | sudo tee -a /etc/sysctl.conf
+echo 'net.core.somaxconn=65535' | sudo tee -a /etc/sysctl.conf
+echo 'net.core.netdev_max_backlog=65535' | sudo tee -a /etc/sysctl.conf
+echo 'net.ipv4.tcp_max_syn_backlog=65535' | sudo tee -a /etc/sysctl.conf
 
 # Mengubah batasan CPU di /etc/security/limits.conf
 echo "Mengubah batasan CPU dan jumlah file di /etc/security/limits.conf..."
@@ -69,7 +70,7 @@ sudo bash -c 'echo -e "\n# Meningkatkan batasan CPU dan file\n* soft nofile 6553
 echo "Mengatur prioritas proses dengan nice..."
 nice -n -20 sleep 1000 &
 
-#Menaikan batasan
+# Menaikan batasan
 ulimit -n 65536
 ulimit -u unlimited
 
