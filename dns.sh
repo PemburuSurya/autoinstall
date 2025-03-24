@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Hapus file resolv.conf yang ada
 echo -e "\033[0;32mMenghapus file /etc/resolv.conf...\033[0m"
 sudo rm /etc/resolv.conf
