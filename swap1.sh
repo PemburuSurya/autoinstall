@@ -48,6 +48,10 @@ echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 dan vm.swappiness ke 10 se
 echo 'vm.overcommit_memory=1' | sudo tee -a /etc/sysctl.conf
 echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 
+#Menaikan batasan
+ulimit -n 65536
+ulimit -u unlimited
+
 # Menonaktifkan Intel P-State jika diperlukan (opsional)
 echo -e "\033[0;32mMenonaktifkan Intel P-State (jika digunakan)...\033[0m"
 if grep -q "intel_pstate=disable" /etc/default/grub; then
