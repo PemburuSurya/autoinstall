@@ -39,12 +39,12 @@ fi
 # Set vm.overcommit_memory ke 1 secara langsung
 echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1...\033[0m"
 sudo sysctl -w vm.overcommit_memory=1
-sudo sysctl -w vm.swappiness=30
+sudo sysctl -w vm.swappiness=10
 
 # Set vm.overcommit_memory ke 1 secara permanen
 echo -e "\033[0;32mMengatur vm.overcommit_memory ke 1 secara permanen...\033[0m"
 echo 'vm.overcommit_memory=1' | sudo tee -a /etc/sysctl.conf
-echo 'vm.swappiness=30' | sudo tee -a /etc/sysctl.conf
+echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 
 # Verifikasi swap
 echo -e "\033[0;32mMemverifikasi swap...\033[0m"
