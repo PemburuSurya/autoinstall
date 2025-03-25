@@ -66,10 +66,6 @@ echo 'net.ipv4.tcp_max_syn_backlog=65535' | sudo tee -a /etc/sysctl.conf
 echo "Mengubah batasan CPU dan jumlah file di /etc/security/limits.conf..."
 sudo bash -c 'echo -e "\n# Meningkatkan batasan CPU dan file\n* soft nofile 65535\n* hard nofile 65535\n* soft nproc unlimited\n* hard nproc unlimited" >> /etc/security/limits.conf'
 
-# Atur Prioritas Proses (menggunakan nice)
-echo "Mengatur prioritas proses dengan nice..."
-nice -n -20 sleep 1000 &
-
 # Menaikan batasan
 ulimit -n 65536
 ulimit -u unlimited
