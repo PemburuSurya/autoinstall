@@ -11,6 +11,15 @@ git clone https://github.com/PemburuSurya/autoinstall.git
 cd autoinstall
 ```
 
+### Create User
+
+Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
+
+```bash
+chmod +x createuser.sh
+./createuser.sh
+```
+
 ### Afterinstall
 
 Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
@@ -20,13 +29,30 @@ chmod +x afterinstall.sh
 ./afterinstall.sh
 ```
 
-### Mengubah DNS & Menambah Virtual Memory
+### DNS
 
 Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
 
 ```bash
-chmod +x dns-swap.sh
-./dns-swap.sh
+chmod +x dns.sh
+./dns.sh
+```
+
+### Menambah Virtual Memory
+
+Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
+
+```bash
+chmod +x swap.sh
+./swap.sh
+```
+### Optimize CPU
+
+Untuk mengubah DNS dan menambah virtual memory, jalankan perintah berikut:
+
+```bash
+chmod +x optimize.sh
+./optimize.sh
 ```
 
 ### Proxy Squid
