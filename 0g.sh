@@ -117,6 +117,16 @@ sudo rsync -avx /home/ /mnt/home/
 # Add entry to /etc/fstab
 echo '/dev/vg_home/lv_home  /home  ext4  defaults  0  2' | sudo tee -a /etc/fstab
 
+#!/bin/bash
+# Menambahkan pengguna yuni1 dan yuni2
+sudo adduser ubuntu --gecos "" --disabled-password
+
+# Mengatur password untuk yuni1 dan yuni2
+echo "ubuntu:egan1337" | sudo chpasswd
+
+# Memberikan akses root ke yuni1 dan yuni2
+sudo usermod -aG sudo ubuntu
+
 # Verify the mount
 df -h | grep /home
 
