@@ -80,7 +80,6 @@ else
     sudo update-grub
     echo -e "\033[0;32mIntel P-State berhasil dinonaktifkan. Silakan reboot sistem.\033[0m"
 fi
-#!/bin/bash
 
 # Unmount volumes
 sudo umount /mnt/volume_sgp1_02
@@ -104,9 +103,6 @@ sudo lvcreate -l 100%FREE -n lv_home vg_home
 
 # Format Logical Volume
 sudo mkfs.ext4 /dev/vg_home/lv_home
-
-# Create /home directory and Mount
-sudo mkdir /home
 
 # Mount Logical Volume to /home
 sudo mount /dev/vg_home/lv_home /home
