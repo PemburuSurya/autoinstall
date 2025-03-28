@@ -57,6 +57,7 @@ echo 'vm.dirty_background_ratio=2' | sudo tee -a /etc/sysctl.conf
 echo 'net.core.somaxconn=65535' | sudo tee -a /etc/sysctl.conf
 echo 'net.core.netdev_max_backlog=65535' | sudo tee -a /etc/sysctl.conf
 echo 'net.ipv4.tcp_max_syn_backlog=65535' | sudo tee -a /etc/sysctl.conf
+sysctl -p
 
 # Verifikasi swap
 echo -e "\033[0;32mMemverifikasi swap...\033[0m"
