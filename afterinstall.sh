@@ -5,47 +5,53 @@ set -e  # Menghentikan skrip jika ada perintah yang gagal
 echo "Memperbarui dan mengupgrade sistem..."
 sudo apt install git -y
 sudo apt update && sudo apt upgrade -y
+sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
 sudo apt install clang cmake build-essential openssl pkg-config libssl-dev -y
+
+# Instal berbagai alat pengembangan dan utilitas
+echo "Menginstal alat-alat pengembangan dan utilitas..."
+sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm nodejs flatpak default-jdk aptitude squid apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv xauth -y
 
 # Instal paket yang diperlukan untuk Docker
 echo "Menginstal dependensi Docker..."
-sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
 
-# Tambahkan kunci GPG Docker
-echo "Menambahkan kunci GPG Docker..."
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+# Konfigurasi Docker
+header "Menginstal Docker"
+if ! command -v docker &> /dev/null; then
+    # Tambahkan kunci GPG Docker
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-# Tambahkan repositori Docker
-echo "Menambahkan repositori Docker..."
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    # Tambahkan repositori Docker
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Update ulang dan instal Docker
-echo "Menginstal Docker..."
-sudo apt update
-sudo apt install docker-ce docker-ce-cli containerd.io -y
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
-# Mengunduh versi terbaru Docker Compose dari GitHub API
-echo "Mengunduh Docker Compose..."
-VER=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)
-curl -L "https://github.com/docker/compose/releases/download/$VER/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    # Tambahkan user ke grup docker
+    sudo usermod -aG docker "$USER"
+    newgrp docker  # Apply group changes without logout
+else
+    echo "[INFO] Docker sudah terinstall"
+fi
 
-# Memberikan izin eksekusi pada binary Docker Compose
-chmod +x /usr/local/bin/docker-compose
-
-#Install Docker CLI plugin and make executable
-DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-mkdir -p $DOCKER_CONFIG/cli-plugins
-curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
-chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+# Instal Docker Compose
+header "Menginstal Docker Compose"
+if ! command -v docker-compose &> /dev/null; then
+    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    
+    # Install as plugin (recommended way)
+    mkdir -p ~/.docker/cli-plugins
+    curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o ~/.docker/cli-plugins/docker-compose
+    chmod +x ~/.docker/cli-plugins/docker-compose
+else
+    echo "[INFO] Docker Compose sudah terinstall"
+fi
 
 # Tambahkan pengguna saat ini ke grup Docker
 echo "Menambahkan pengguna ke grup Docker..."
 sudo groupadd -f docker
 sudo usermod -aG docker $USER
-
-# Instal berbagai alat pengembangan dan utilitas
-echo "Menginstal alat-alat pengembangan dan utilitas..."
-sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm nodejs flatpak default-jdk aptitude squid apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv -y
 
 # Instal Visual Studio Code melalui Snap
 echo "Menginstal Visual Studio Code..."
@@ -62,10 +68,7 @@ sudo apt update
 
 # 1. Aktifkan IP Forwarding
 echo "🔧 Mengaktifkan IP forwarding..."
-sudo tee -a /etc/sysctl.conf <<EOF
-net.ipv4.ip_forward=1
-vm.overcommit_memory=1
-EOF
+echo 'net.ipv4.ip_forward=1' | sudo tee -a /etc/sysctl.conf
 
 # Terapkan perubahan sysctl
 sudo sysctl -p
@@ -79,13 +82,6 @@ echo "🔧 Mengaktifkan X11 Forwarding di SSH..."
 sudo sed -i 's/#X11Forwarding no/X11Forwarding yes/g' /etc/ssh/sshd_config
 sudo sed -i 's/#X11DisplayOffset 10/X11DisplayOffset 10/g' /etc/ssh/sshd_config
 sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config
-
-# Install xauth jika belum ada
-if ! command -v xauth &> /dev/null; then
-    echo "🔧 Memasang xauth..."
-    sudo apt-get update
-    sudo apt-get install -y xauth
-fi
 
 # 4. Atur iptables untuk X11 dan forwarding
 echo "🔧 Mengatur firewall untuk X11 dan forwarding..."
@@ -104,6 +100,7 @@ sudo systemctl enable netfilter-persistent
 # 6. Restart service SSH
 echo "🔧 Restarting SSH service..."
 sudo systemctl restart ssh
+
 # Download Go 1.22.4 for Linux amd64
 GO_VERSION="1.22.4"
 GO_ARCH="linux-amd64"
