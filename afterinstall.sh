@@ -60,11 +60,51 @@ echo "Menambahkan PPA OpenJDK..."
 sudo add-apt-repository ppa:openjdk-r/ppa -y
 sudo apt update
 
-# Aktifkan dan mulai layanan netfilter-persistent
-echo "Mengaktifkan dan memulai netfilter-persistent..."
-sudo systemctl enable netfilter-persistent
-sudo systemctl start netfilter-persistent
+# 1. Aktifkan IP Forwarding
+echo "🔧 Mengaktifkan IP forwarding..."
+sudo tee -a /etc/sysctl.conf <<EOF
+net.ipv4.ip_forward=1
+vm.overcommit_memory=1
+EOF
 
+# Terapkan perubahan sysctl
+sudo sysctl -p
+
+# 2. Setup iptables dasar
+echo "🔧 Mengatur iptables..."
+sudo modprobe iptable_nat
+
+# 3. Konfigurasi X11 Forwarding
+echo "🔧 Mengaktifkan X11 Forwarding di SSH..."
+sudo sed -i 's/#X11Forwarding no/X11Forwarding yes/g' /etc/ssh/sshd_config
+sudo sed -i 's/#X11DisplayOffset 10/X11DisplayOffset 10/g' /etc/ssh/sshd_config
+sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config
+
+# Install xauth jika belum ada
+if ! command -v xauth &> /dev/null; then
+    echo "🔧 Memasang xauth..."
+    sudo apt-get update
+    sudo apt-get install -y xauth
+fi
+
+# 4. Atur iptables untuk X11 dan forwarding
+echo "🔧 Mengatur firewall untuk X11 dan forwarding..."
+sudo iptables -P INPUT ACCEPT
+sudo iptables -P FORWARD ACCEPT
+sudo iptables -P OUTPUT ACCEPT
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE  # Ganti eth0 dengan interface yang sesuai
+sudo iptables -A INPUT -p tcp --dport 6000:6007 -j ACCEPT
+sudo iptables -A OUTPUT -p tcp --sport 6000:6007 -j ACCEPT
+
+# 5. Simpan aturan iptables dan aktifkan persistensi
+echo "🔧 Menyimpan konfigurasi iptables..."
+sudo apt-get install -y iptables-persistent
+sudo netfilter-persistent save
+sudo systemctl enable netfilter-persistent
+
+# 6. Restart service SSH
+echo "🔧 Restarting SSH service..."
+sudo systemctl restart ssh
 # Download Go 1.22.4 for Linux amd64
 GO_VERSION="1.22.4"
 GO_ARCH="linux-amd64"
