@@ -98,7 +98,6 @@ sudo iptables -A OUTPUT -p tcp --sport 6000:6007 -j ACCEPT
 
 # 5. Simpan aturan iptables dan aktifkan persistensi
 echo "🔧 Menyimpan konfigurasi iptables..."
-sudo apt-get install -y iptables-persistent
 sudo netfilter-persistent save
 sudo systemctl enable netfilter-persistent
 
