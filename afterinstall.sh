@@ -5,48 +5,41 @@ set -e  # Menghentikan skrip jika ada perintah yang gagal
 echo "Memperbarui dan mengupgrade sistem..."
 sudo apt install git -y
 sudo apt update && sudo apt upgrade -y
-sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+sudo apt install curl apt-transport-https ca-certificates curl software-properties-common -y
 sudo apt install clang cmake build-essential openssl pkg-config libssl-dev -y
 
 # Instal berbagai alat pengembangan dan utilitas
 echo "Menginstal alat-alat pengembangan dan utilitas..."
 sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm nodejs flatpak default-jdk aptitude squid apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv xauth -y
 
-# Instal paket yang diperlukan untuk Docker
-echo "Menginstal dependensi Docker..."
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-# Konfigurasi Docker
-header "Menginstal Docker"
-if ! command -v docker &> /dev/null; then
-    # Tambahkan kunci GPG Docker
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+# Add stable repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    # Tambahkan repositori Docker
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+# Install Docker Engine
+sudo apt-get update
+sudo apt-get install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io
 
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+# =============================================
+# DOCKER COMPOSE V2 (RECOMMENDED)
+# =============================================
+echo -e "\033[0;32mInstalling Docker Compose V2...\033[0m"
 
-    # Tambahkan user ke grup docker
-    sudo usermod -aG docker "$USER"
-    newgrp docker  # Apply group changes without logout
-else
-    echo "[INFO] Docker sudah terinstall"
-fi
+# Download and install as CLI plugin (modern method)
+DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+mkdir -p $DOCKER_CONFIG/cli-plugins
+COMPOSE_VERSION=v2.20.2  # Fixed version for stability
 
-# Instal Docker Compose
-header "Menginstal Docker Compose"
-if ! command -v docker-compose &> /dev/null; then
-    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-    
-    # Install as plugin (recommended way)
-    mkdir -p ~/.docker/cli-plugins
-    curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o ~/.docker/cli-plugins/docker-compose
-    chmod +x ~/.docker/cli-plugins/docker-compose
-else
-    echo "[INFO] Docker Compose sudah terinstall"
-fi
+curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" \
+    -o $DOCKER_CONFIG/cli-plugins/docker-compose
+
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 
 # Tambahkan pengguna saat ini ke grup Docker
 echo "Menambahkan pengguna ke grup Docker..."
