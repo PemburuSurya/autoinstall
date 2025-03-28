@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
+# Pre-configure iptables-persistent untuk auto-yes
+echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | sudo debconf-set-selections
+echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | sudo debconf-set-selections
+
 # Update dan upgrade sistem
 echo "Memperbarui dan mengupgrade sistem..."
 sudo apt install git -y
