@@ -1,18 +1,6 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
-# =============================================
-# FUNGSI UTILITAS: AUTO-YES UNTUK SEMUA PROMPT
-# =============================================
-auto_yes() {
-    # Untuk apt-get/dpkg
-    export DEBIAN_FRONTEND=noninteractive
-    export NEEDRESTART_MODE=a
-    
-    # Untuk konfigurasi debconf
-    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-}
-
 # Update dan upgrade sistem
 echo "Memperbarui dan mengupgrade sistem..."
 sudo apt install git -y
@@ -22,7 +10,16 @@ sudo apt install clang cmake build-essential openssl pkg-config libssl-dev -y
 
 # Instal berbagai alat pengembangan dan utilitas
 echo "Menginstal alat-alat pengembangan dan utilitas..."
-sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm nodejs flatpak default-jdk aptitude squid apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv xauth -y
+sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm nodejs flatpak default-jdk aptitude squid apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv xauth -y\
+
+# Konfigurasi otomatis untuk prompt
+echo "Mengatur konfigurasi otomatis untuk prompt..."
+# Untuk openssh-server - keep local version
+echo "openssh-server openssh-server/keep_local_config boolean true" | sudo debconf-set-selections
+
+# Untuk iptables-persistent - yes untuk IPv4 dan IPv6
+echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | sudo debconf-set-selections
+echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | sudo debconf-set-selections
 
 # Add Docker's official GPG key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
