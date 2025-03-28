@@ -137,15 +137,9 @@ curl https://repo.anaconda.com/archive/Anaconda3-2021.11-Linux-x86_64.sh --outpu
 # Berikan izin eksekusi pada installer
 chmod +x anaconda.sh
 
-# Periksa apakah instalasi Anaconda sudah ada
-if [[ -d "$HOME/anaconda3" ]]; then
-    echo "Anaconda sudah terinstal di $HOME/anaconda3."
-    echo "Memperbarui instalasi Anaconda yang sudah ada..."
-    bash anaconda.sh -u -b -p $HOME/anaconda3
-else
-    echo "Menginstal Anaconda..."
-    bash anaconda.sh -b -p $HOME/anaconda3
-fi
+# Jalankan installer Anaconda
+echo "Menginstal Anaconda..."
+bash anaconda.sh -b -p $HOME/anaconda3
 
 # Cari path anaconda3 atau miniconda3
 CONDA_PATH=$(find $HOME -type d -name "anaconda3" -o -name "miniconda3" 2>/dev/null | head -n 1)
@@ -153,7 +147,7 @@ CONDA_PATH=$(find $HOME -type d -name "anaconda3" -o -name "miniconda3" 2>/dev/n
 # Jika ditemukan, tambahkan ke ~/.bashrc
 if [[ -n $CONDA_PATH ]]; then
     echo "Menemukan Conda di: $CONDA_PATH"
-    echo "export PATH=\"$CONDA_PATH/bin:\$PATH\"" >> ~/.bashrc
+    echo ". $CONDA_PATH/etc/profile.d/conda.sh" >> ~/.bashrc
     source ~/.bashrc
     echo "Conda telah ditambahkan ke PATH."
 else
@@ -161,26 +155,21 @@ else
     exit 1
 fi
 
-# Inisialisasi Conda
-echo "Menginisialisasi Conda..."
-eval "$($CONDA_PATH/bin/conda shell.bash hook)"
-source ~/.bashrc
-
-# Perbarui Conda ke versi terbaru
-echo "Memperbarui Conda..."
-conda update -n base -c defaults conda -y
-
 # Periksa versi Conda
 echo "Memeriksa versi Conda..."
 conda --version
+
+# Inisialisasi Conda
+echo "Menginisialisasi Conda..."
+conda init bash
+source ~/.bashrc
 
 # Install pip menggunakan Conda
 echo "Menginstal pip menggunakan Conda..."
 conda install pip -y
 
-# Perbaiki masalah pip (jika ada)
-echo "Memperbaiki masalah pip..."
-pip uninstall pyodbc -y 2>/dev/null  # Hapus pyodbc jika bermasalah
+# Perbarui pip
+echo "Memperbarui pip..."
 pip install --upgrade pip
 
 # Buat lingkungan virtual Python menggunakan Conda
@@ -191,17 +180,12 @@ conda create -n myenv python=3.9 -y
 echo "Mengaktifkan lingkungan virtual..."
 conda activate myenv
 
-# Verifikasi lingkungan virtual
-echo "Verifikasi lingkungan virtual..."
-conda info --envs
-
-header "Instalasi Selesai"
 echo -e "\033[1;32mSemua paket berhasil diinstall!\033[0m"
 echo -e "Beberapa perubahan memerlukan logout/login atau:"
 echo -e "  $ source ~/.bashrc"
 echo -e "Untuk verifikasi, jalankan perintah berikut:"
 echo -e "  - docker --version"
-echo -e "  - docker-compose --version"
+echo -e "  - docker compose version"
 echo -e "  - go version"
 echo -e "  - rustc --version"
 echo -e "  - conda --version"
