@@ -119,30 +119,27 @@ done
 sudo sysctl -p
 
 # Unmount volumes
-sudo umount /mnt/volume_sgp1_01
 sudo umount /mnt/volume_sgp1_02
 sudo umount /mnt/volume_sgp1_03
 sudo umount /mnt/volume_sgp1_04
 sudo umount /mnt/volume_sgp1_05
+sudo umount /mnt/volume_sgp1_06
 
 # Create Physical Volumes
-sudo pvcreate /dev/sda
 sudo pvcreate /dev/sdb
 sudo pvcreate /dev/sdc
 sudo pvcreate /dev/sdd
 sudo pvcreate /dev/sde
+sudo pvcreate /dev/sdf
 
 # Create Volume Group
-sudo vgcreate vg_home /dev/sda /dev/sdb /dev/sdc /dev/sdd /dev/sde
+sudo vgcreate vg_home /dev/sdb /dev/sdc /dev/sdd /dev/sde /dev/sdf
 
 # Create Logical Volume
 sudo lvcreate -l 100%FREE -n lv_home vg_home
 
 # Format Logical Volume
 sudo mkfs.ext4 /dev/vg_home/lv_home
-
-# Create /home directory and Mount
-sudo mkdir /home
 
 # Mount Logical Volume to /home
 sudo mount /dev/vg_home/lv_home /home
