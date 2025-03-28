@@ -1,8 +1,17 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
-echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | sudo debconf-set-selections
-echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | sudo debconf-set-selections
+# =============================================
+# FUNGSI UTILITAS: AUTO-YES UNTUK SEMUA PROMPT
+# =============================================
+auto_yes() {
+    # Untuk apt-get/dpkg
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+    
+    # Untuk konfigurasi debconf
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+}
 
 # Update dan upgrade sistem
 echo "Memperbarui dan mengupgrade sistem..."
