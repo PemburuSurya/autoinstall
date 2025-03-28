@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
-# Update dan upgrade sistem
-sudo apt update && sudo apt upgrade -y
-sudo apt install build-essential -y
-
 # Mengubah batasan CPU di /etc/security/limits.conf
 echo "Mengubah batasan CPU dan jumlah file di /etc/security/limits.conf..."
 sudo bash -c 'echo -e "\n# Meningkatkan batasan CPU dan file\n* soft nofile 65535\n* hard nofile 65535\n* soft nproc unlimited\n* hard nproc unlimited" >> /etc/security/limits.conf'
