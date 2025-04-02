@@ -198,7 +198,7 @@ pip install --upgrade pip
 
 # Buat lingkungan virtual Python menggunakan Conda
 echo "Membuat lingkungan virtual Python menggunakan Conda..."
-conda create -n myenv python=3.9 -y
+conda create -n myenv python=3.10 -y
 
 # Aktifkan lingkungan virtual
 echo "Mengaktifkan lingkungan virtual..."
