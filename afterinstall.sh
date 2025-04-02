@@ -10,7 +10,7 @@ sudo apt install clang cmake build-essential openssl pkg-config libssl-dev -y
 
 # Instal berbagai alat pengembangan dan utilitas
 echo "Menginstal alat-alat pengembangan dan utilitas..."
-sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm nodejs flatpak default-jdk aptitude squid apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv xauth -y\
+sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm automake autoconf nvme-cli flatpak default-jdk aptitude squid libgbm1 apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv bsdmainutils libleveldb-dev unzip xauth -y\
 
 # Konfigurasi otomatis untuk prompt
 echo "Mengatur konfigurasi otomatis untuk prompt..."
@@ -30,10 +30,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docke
 
 # Install Docker Engine
 sudo apt-get update
-sudo apt-get install -y \
-    docker-ce \
-    docker-ce-cli \
-    containerd.io
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # =============================================
 # DOCKER COMPOSE V2 (RECOMMENDED)
@@ -54,6 +51,17 @@ chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 echo "Menambahkan pengguna ke grup Docker..."
 sudo groupadd -f docker
 sudo usermod -aG docker $USER
+
+#Install Node
+sudo apt-get update
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo npm install -g yarn
+
+#Install Yarn
+curl -o- -L https://yarnpkg.com/install.sh | bash
+export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+source ~/.bashrc
 
 # Instal Visual Studio Code melalui Snap
 echo "Menginstal Visual Studio Code..."
