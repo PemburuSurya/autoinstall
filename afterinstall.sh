@@ -211,6 +211,7 @@ conda create -n myenv python=3.10 -y
 # Aktifkan lingkungan virtual
 echo "Mengaktifkan lingkungan virtual..."
 conda activate myenv
+source ~/.bashrc
 
 echo -e "\033[1;32mSemua paket berhasil diinstall!\033[0m"
 echo -e "Beberapa perubahan memerlukan logout/login atau:"
