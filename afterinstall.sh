@@ -1,6 +1,18 @@
 #!/bin/bash
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
+# =============================================
+# FUNGSI UTILITAS: AUTO-YES UNTUK SEMUA PROMPT
+# =============================================
+auto_yes() {
+    # Untuk apt-get/dpkg
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+    
+    # Untuk konfigurasi debconf
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+}
+
 # Update dan upgrade sistem
 echo "Memperbarui dan mengupgrade sistem..."
 sudo apt install git -y
@@ -10,16 +22,7 @@ sudo apt install clang cmake build-essential openssl pkg-config libssl-dev -y
 
 # Instal berbagai alat pengembangan dan utilitas
 echo "Menginstal alat-alat pengembangan dan utilitas..."
-sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm automake autoconf nvme-cli flatpak default-jdk aptitude squid libgbm1 apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv bsdmainutils libleveldb-dev unzip xauth -y\
-
-# Konfigurasi otomatis untuk prompt
-echo "Mengatur konfigurasi otomatis untuk prompt..."
-# Untuk openssh-server - keep local version
-echo "openssh-server openssh-server/keep_local_config boolean true" | sudo debconf-set-selections
-
-# Untuk iptables-persistent - yes untuk IPv4 dan IPv6
-echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | sudo debconf-set-selections
-echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | sudo debconf-set-selections
+sudo apt install snapd wget htop tmux jq make gcc tar ncdu protobuf-compiler npm nodejs flatpak default-jdk aptitude squid apache2-utils iptables iptables-persistent openssh-server jq sed lz4 aria2 pv xauth -y
 
 # Add Docker's official GPG key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -30,7 +33,10 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docke
 
 # Install Docker Engine
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io
 
 # =============================================
 # DOCKER COMPOSE V2 (RECOMMENDED)
@@ -52,17 +58,6 @@ echo "Menambahkan pengguna ke grup Docker..."
 sudo groupadd -f docker
 sudo usermod -aG docker $USER
 
-#Install Node
-sudo apt-get update
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs
-sudo npm install -g yarn
-
-#Install Yarn
-curl -o- -L https://yarnpkg.com/install.sh | bash
-export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
-source ~/.bashrc
-
 # Instal Visual Studio Code melalui Snap
 echo "Menginstal Visual Studio Code..."
 sudo snap install code --classic
@@ -77,24 +72,24 @@ sudo add-apt-repository ppa:openjdk-r/ppa -y
 sudo apt update
 
 # 1. Aktifkan IP Forwarding
-echo "🔧 Mengaktifkan IP forwarding..."
+echo "ðŸ”§ Mengaktifkan IP forwarding..."
 echo 'net.ipv4.ip_forward=1' | sudo tee -a /etc/sysctl.conf
 
 # Terapkan perubahan sysctl
 sudo sysctl -p
 
 # 2. Setup iptables dasar
-echo "🔧 Mengatur iptables..."
+echo "ðŸ”§ Mengatur iptables..."
 sudo modprobe iptable_nat
 
 # 3. Konfigurasi X11 Forwarding
-echo "🔧 Mengaktifkan X11 Forwarding di SSH..."
+echo "ðŸ”§ Mengaktifkan X11 Forwarding di SSH..."
 sudo sed -i 's/#X11Forwarding no/X11Forwarding yes/g' /etc/ssh/sshd_config
 sudo sed -i 's/#X11DisplayOffset 10/X11DisplayOffset 10/g' /etc/ssh/sshd_config
 sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config
 
 # 4. Atur iptables untuk X11 dan forwarding
-echo "🔧 Mengatur firewall untuk X11 dan forwarding..."
+echo "ðŸ”§ Mengatur firewall untuk X11 dan forwarding..."
 sudo iptables -P INPUT ACCEPT
 sudo iptables -P FORWARD ACCEPT
 sudo iptables -P OUTPUT ACCEPT
@@ -103,12 +98,12 @@ sudo iptables -A INPUT -p tcp --dport 6000:6007 -j ACCEPT
 sudo iptables -A OUTPUT -p tcp --sport 6000:6007 -j ACCEPT
 
 # 5. Simpan aturan iptables dan aktifkan persistensi
-echo "🔧 Menyimpan konfigurasi iptables..."
+echo "ðŸ”§ Menyimpan konfigurasi iptables..."
 sudo netfilter-persistent save
 sudo systemctl enable netfilter-persistent
 
 # 6. Restart service SSH
-echo "🔧 Restarting SSH service..."
+echo "ðŸ”§ Restarting SSH service..."
 sudo systemctl restart ssh
 
 # Download Go 1.22.4 for Linux amd64
@@ -206,12 +201,11 @@ pip install --upgrade pip
 
 # Buat lingkungan virtual Python menggunakan Conda
 echo "Membuat lingkungan virtual Python menggunakan Conda..."
-conda create -n myenv python=3.10 -y
+conda create -n myenv python=3.9 -y
 
 # Aktifkan lingkungan virtual
 echo "Mengaktifkan lingkungan virtual..."
 conda activate myenv
-source ~/.bashrc
 
 echo -e "\033[1;32mSemua paket berhasil diinstall!\033[0m"
 echo -e "Beberapa perubahan memerlukan logout/login atau:"
