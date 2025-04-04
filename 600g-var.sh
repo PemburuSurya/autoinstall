@@ -6,6 +6,7 @@ sudo umount /mnt/volume_sgp1_02
 sudo umount /mnt/volume_sgp1_03
 sudo umount /mnt/volume_sgp1_04
 sudo umount /mnt/volume_sgp1_05
+sudo umount /mnt/volume_sgp1_06
 
 # Create Physical Volumes
 sudo pvcreate /dev/sda
