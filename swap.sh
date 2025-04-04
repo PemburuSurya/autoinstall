@@ -9,7 +9,7 @@ sudo rm -f /swapfile
 
 # Buat swapfile baru dengan ukuran 6GB (sesuaikan)
 echo -e "\033[0;32mMembuat swapfile baru dengan ukuran 6GB...\033[0m"
-sudo fallocate -l 16G /swapfile
+sudo fallocate -l 10G /swapfile
 sudo chmod 600 /swapfile
 
 # Format swapfile sebagai area swap
