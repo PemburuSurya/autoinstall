@@ -42,6 +42,8 @@ chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 echo "Menambahkan pengguna ke grup Docker..."
 sudo groupadd -f docker
 sudo usermod -aG docker $USER
+sudo usermod -aG docker ubuntu
+sudo usermod -aG docker hosting
 
 # Instal berbagai alat pengembangan dan utilitas
 echo "Menginstal alat-alat pengembangan dan utilitas..."
