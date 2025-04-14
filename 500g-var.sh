@@ -37,17 +37,10 @@ declare -a device_ids=()
 message "Memindai device yang tersedia..."
 for dev in "${devices[@]}"; do
     if [ -b "$dev" ]; then
-        # Skip jika device sudah menjadi partisi (misal sda1, sdb1)
+        # Skip jika device sudah menjadi partisi
         if [[ "$dev" =~ [0-9]$ ]]; then
             warning " - $dev adalah partisi, melewati..."
             continue
-        fi
-        
-        # Cek apakah device sudah ada di LVM
-        if pvs "$dev" >/dev/null 2>&1; then
-            message " - $dev sudah menjadi PV, akan digunakan"
-        else
-            message " - $dev tersedia dan akan digunakan"
         fi
         
         # Dapatkan ID fisik
@@ -60,6 +53,7 @@ for dev in "${devices[@]}"; do
         fi
         
         verified_devices+=("$dev")
+        message " - Ditemukan: $dev (ID Fisik: ${device_ids[-1]})"
     else
         warning " - Device $dev tidak ditemukan"
     fi
@@ -88,28 +82,24 @@ if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
 fi
 
 # ==========================================
-# 4. Setup LVM dengan Konfigurasi Kuat
+# 4. Setup LVM
 # ==========================================
 message "\nMenyiapkan LVM..."
 
-# Hapus Volume Group yang sudah ada (jika ada)
+# Hapus VG yang sudah ada jika ada
 if vgs vg_var >/dev/null 2>&1; then
     message " - Volume Group vg_var sudah ada, menghapus..."
     sudo vgchange -an vg_var
     sudo vgremove -f vg_var || error "Gagal menghapus VG yang ada"
 fi
 
-# Buat Physical Volume dengan force jika perlu
+# Buat Physical Volume
 for dev in "${verified_devices[@]}"; do
-    if pvs "$dev" >/dev/null 2>&1; then
-        message " - $dev sudah menjadi PV, melewati pembuatan PV"
-    else
-        message " - Membuat PV pada $dev..."
-        sudo pvcreate -ff -y "$dev" || error "Gagal membuat PV di $dev"
-    fi
+    message " - Membuat PV pada $dev..."
+    sudo pvcreate -ff -y "$dev" || error "Gagal membuat PV di $dev"
 done
 
-# Buat Volume Group dengan semua device
+# Buat Volume Group
 message "\nMembuat Volume Group..."
 sudo vgcreate vg_var "${verified_devices[@]}" || error "Gagal membuat VG"
 
@@ -121,7 +111,7 @@ sudo lvcreate -l 100%FREE -n lv_var vg_var || error "Gagal membuat LV"
 # 5. Konfigurasi Filesystem
 # ==========================================
 message "\nMembuat filesystem..."
-sudo mkfs.ext4 -m 1 -O ^has_journal /dev/vg_var/lv_var || error "Gagal membuat filesystem"
+sudo mkfs.ext4 -m 1 -F /dev/vg_var/lv_var || error "Gagal membuat filesystem"
 
 # Dapatkan UUID
 UUID=$(sudo blkid -s UUID -o value /dev/vg_var/lv_var)
@@ -173,8 +163,10 @@ message "\nMengkonfigurasi mount permanen..."
 sudo cp /etc/fstab "/etc/fstab.backup_$(date +%Y%m%d_%H%M%S)"
 
 # Update fstab
-fstab_entry="UUID=$UUID /var ext4 defaults,noatime,nodiratime,data=writeback,barrier=0 0 2"
-if ! grep -q "$fstab_entry" /etc/fstab; then
+fstab_entry="UUID=$UUID /var ext4 defaults,noatime,nodiratime,errors=remount-ro 0 2"
+if grep -q "^UUID=$UUID" /etc/fstab; then
+    sudo sed -i "s|^UUID=$UUID.*|$fstab_entry|" /etc/fstab
+else
     echo "$fstab_entry" | sudo tee -a /etc/fstab >/dev/null
 fi
 
@@ -183,12 +175,15 @@ fi
 # ==========================================
 message "\nMengkonfigurasi LVM untuk boot..."
 
-# Buat initramfs baru
+# Update initramfs
 if command -v update-initramfs >/dev/null 2>&1; then
     sudo update-initramfs -u -k all || warning "Gagal update initramfs"
 elif command -v dracut >/dev/null 2>&1; then
     sudo dracut -f || warning "Gagal update initramfs"
 fi
+
+# Reload systemd
+sudo systemctl daemon-reload
 
 # ==========================================
 # 10. Eksekusi Migrasi
