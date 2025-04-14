@@ -16,6 +16,10 @@ function info() {
     echo -e "\033[1;32m[INFO] $1\033[0m"
 }
 
+function warn() {
+    echo -e "\033[1;33m[WARN] $1\033[0m"
+}
+
 function error() {
     echo -e "\033[1;31m[ERROR] $1\033[0m" >&2
     exit 1
@@ -128,18 +132,35 @@ else
 fi
 
 # ==========================================
-# Rust Installation
+# Rust Installation (Improved)
 # ==========================================
 info "Installing Rust..."
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-grep -qxF 'export PATH="$HOME/.cargo/bin:$PATH"' ~/.bashrc || echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
+export CARGO_HOME="$HOME/.cargo"
+export RUSTUP_HOME="$HOME/.rustup"
+
+# Install Rust non-interactively
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+
+# Add to PATH in a way that works for all shells
+{
+    echo 'export CARGO_HOME="$HOME/.cargo"'
+    echo 'export RUSTUP_HOME="$HOME/.rustup"'
+    echo 'export PATH="$CARGO_HOME/bin:$PATH"'
+} >> ~/.bashrc
+
+# Source the environment immediately
+source "$CARGO_HOME/env"
 
 # ==========================================
 # Final Configuration
 # ==========================================
 info "Final system configuration..."
 sudo systemctl enable --now netfilter-persistent
+
+# Fix potential PS1 error in .bashrc
+if ! grep -q "PS1" ~/.bashrc; then
+    echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
+fi
 
 # ==========================================
 # Completion Message
@@ -154,5 +175,16 @@ INSTALLATION COMPLETE!
 - Visual Studio Code installed via Snap
 ================================================
 
-You may need to log out and back in for group changes to take effect.
+IMPORTANT NEXT STEPS:
+1. Run this command or restart your shell to apply changes:
+   source ~/.bashrc
+
+2. Verify Rust installation:
+   rustc --version
+   cargo --version
+
+3. For Docker to work without sudo, you may need to log out and back in.
+
+4. Verify Go installation:
+   go version
 EOF
