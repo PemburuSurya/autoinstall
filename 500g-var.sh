@@ -27,21 +27,6 @@ if [[ $EUID -ne 0 ]]; then
     error "Script harus dijalankan sebagai root"
 fi
 
-# Cek distribusi Linux (Debian/Ubuntu/RHEL)
-if ! command -v lsb_release >/dev/null 2>&1; then
-    warning "lsb_release tidak ditemukan, asumsikan sistem kompatibel"
-else
-    distro=$(lsb_release -is)
-    case $distro in
-        Ubuntu|Debian|CentOS|RedHatEnterpriseServer)
-            message "Sistem terdeteksi: $distro"
-            ;;
-        *)
-            warning "Distribusi $distro belum sepenuhnya diuji"
-            ;;
-    esac
-fi
-
 # ==========================================
 # 2. Deteksi dan Verifikasi Device
 # ==========================================
@@ -52,15 +37,29 @@ declare -a device_ids=()
 message "Memindai device yang tersedia..."
 for dev in "${devices[@]}"; do
     if [ -b "$dev" ]; then
-        # Dapatkan ID fisik device yang lebih stabil
-        dev_id=$(ls -l /dev/disk/by-id/ | grep -E "$(basename $(readlink -f "$dev"))" | head -1 | awk '{print $9}')
+        # Skip jika device sudah menjadi partisi (misal sda1, sdb1)
+        if [[ "$dev" =~ [0-9]$ ]]; then
+            warning " - $dev adalah partisi, melewati..."
+            continue
+        fi
+        
+        # Cek apakah device sudah ada di LVM
+        if pvs "$dev" >/dev/null 2>&1; then
+            message " - $dev sudah menjadi PV, akan digunakan"
+        else
+            message " - $dev tersedia dan akan digunakan"
+        fi
+        
+        # Dapatkan ID fisik
+        dev_id=$(ls -l /dev/disk/by-id/ | grep -E "$(basename $(readlink -f "$dev"))" | grep -v -E "part[0-9]+" | head -1 | awk '{print $9}')
         if [ -n "$dev_id" ]; then
-            message " - Ditemukan: $dev -> /dev/disk/by-id/$dev_id"
-            verified_devices+=("$dev")
             device_ids+=("/dev/disk/by-id/$dev_id")
         else
-            warning " - Device $dev ditemukan tetapi tidak memiliki ID fisik, akan dilewati"
+            warning " - Tidak dapat menemukan ID fisik untuk $dev"
+            device_ids+=("$dev")
         fi
+        
+        verified_devices+=("$dev")
     else
         warning " - Device $dev tidak ditemukan"
     fi
@@ -93,16 +92,21 @@ fi
 # ==========================================
 message "\nMenyiapkan LVM..."
 
-# Hapus signature yang mungkin ada
-for dev in "${verified_devices[@]}"; do
-    message " - Membersihkan device $dev..."
-    sudo wipefs -a "$dev" || warning "Gagal membersihkan $dev (lanjut saja)"
-done
+# Hapus Volume Group yang sudah ada (jika ada)
+if vgs vg_var >/dev/null 2>&1; then
+    message " - Volume Group vg_var sudah ada, menghapus..."
+    sudo vgchange -an vg_var
+    sudo vgremove -f vg_var || error "Gagal menghapus VG yang ada"
+fi
 
-# Buat Physical Volume
+# Buat Physical Volume dengan force jika perlu
 for dev in "${verified_devices[@]}"; do
-    message " - Membuat PV pada $dev..."
-    sudo pvcreate "$dev" || error "Gagal membuat PV di $dev"
+    if pvs "$dev" >/dev/null 2>&1; then
+        message " - $dev sudah menjadi PV, melewati pembuatan PV"
+    else
+        message " - Membuat PV pada $dev..."
+        sudo pvcreate -ff -y "$dev" || error "Gagal membuat PV di $dev"
+    fi
 done
 
 # Buat Volume Group dengan semua device
@@ -125,11 +129,6 @@ if [ -z "$UUID" ]; then
     error "Gagal mendapatkan UUID logical volume"
 fi
 
-# Optimalkan filesystem
-message "Mengoptimalkan filesystem..."
-sudo tune2fs -o journal_data_writeback /dev/vg_var/lv_var
-sudo tune2fs -O ^has_journal /dev/vg_var/lv_var
-
 # ==========================================
 # 6. Backup Data /var
 # ==========================================
@@ -141,8 +140,8 @@ sudo rsync -aAXv --delete --info=progress2 /var/ "$backup_dir/" || {
 }
 
 # Verifikasi backup
-if [ ! -f "$backup_dir/etc/fstab" ]; then
-    error "Backup tidak valid, file penting tidak ditemukan"
+if [ ! -d "$backup_dir" ] || [ -z "$(ls -A "$backup_dir")" ]; then
+    error "Backup tidak valid, direktori kosong"
 fi
 
 # ==========================================
@@ -173,20 +172,11 @@ message "\nMengkonfigurasi mount permanen..."
 # Backup fstab
 sudo cp /etc/fstab "/etc/fstab.backup_$(date +%Y%m%d_%H%M%S)"
 
-# Update fstab dengan semua opsi mount
-fstab_entry=(
-    "# /var pada LVM"
-    "UUID=$UUID /var ext4 defaults,noatime,nodiratime,data=writeback,barrier=0 0 2"
-    "/dev/vg_var/lv_var /var ext4 defaults,noatime,nodiratime,data=writeback,barrier=0 0 2"
-    "# Fallback device: ${device_ids[0]}"
-    "${device_ids[0]} /var ext4 defaults,noatime,nodiratime,data=writeback,barrier=0 0 2"
-)
-
-for line in "${fstab_entry[@]}"; do
-    if ! grep -q "$line" /etc/fstab; then
-        echo "$line" | sudo tee -a /etc/fstab >/dev/null
-    fi
-done
+# Update fstab
+fstab_entry="UUID=$UUID /var ext4 defaults,noatime,nodiratime,data=writeback,barrier=0 0 2"
+if ! grep -q "$fstab_entry" /etc/fstab; then
+    echo "$fstab_entry" | sudo tee -a /etc/fstab >/dev/null
+fi
 
 # ==========================================
 # 9. Konfigurasi LVM untuk Boot
@@ -200,10 +190,6 @@ elif command -v dracut >/dev/null 2>&1; then
     sudo dracut -f || warning "Gagal update initramfs"
 fi
 
-# Konfigurasi lvm.conf
-sudo sed -i 's/obtain_device_list_from_udev = [0-9]/obtain_device_list_from_udev = 1/' /etc/lvm/lvm.conf
-sudo sed -i 's/^\( *\)filter = .*/\1filter = [ "a|.*|" ]/' /etc/lvm/lvm.conf
-
 # ==========================================
 # 10. Eksekusi Migrasi
 # ==========================================
@@ -215,7 +201,6 @@ sudo mkdir /var
 
 # Mount /var baru
 sudo mount /var || {
-    # Jika gagal, coba mount manual
     warning "Mount otomatis gagal, mencoba mount manual..."
     sudo vgchange -ay
     sudo mount /dev/vg_var/lv_var /var || error "Gagal mount /var"
@@ -231,15 +216,9 @@ if ! mountpoint -q /var; then
     error "/var tidak ter-mount dengan benar"
 fi
 
-# Cek kapasitas
-var_size=$(df -h /var | awk 'NR==2 {print $2}')
-if [[ "$var_size" == "1.0M" ]]; then
-    error "Ukuran /var tidak normal, kemungkinan mount gagal"
-fi
-
 # Cek isi
-if [ ! -f /var/backups ]; then
-    warning "Direktori /var/backups tidak ditemukan, kemungkinan data tidak lengkap"
+if [ ! -d /var/log ] || [ ! -d /var/lib ]; then
+    warning "Direktori penting tidak ditemukan, kemungkinan data tidak lengkap"
 fi
 
 # ==========================================
@@ -258,7 +237,7 @@ TINDAKAN SELANJUTNYA:
 
 2. Jika semua berfungsi setelah reboot, Anda dapat menghapus backup:
    - sudo rm -rf /var.old
-   - sudo rm -rf /mnt/var_backup_*
+   - sudo rm -rf $backup_dir
 
 3. Jika ada masalah:
    - Boot ke rescue mode
