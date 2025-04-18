@@ -111,27 +111,22 @@ for service in "${services_to_disable[@]}"; do
     fi
 done
 
-# 4. Final System Updates
-status "Performing final system updates..."
+# 5. Final System Updates
+status "Performing final updates..."
 
-if command -v apt-get >/dev/null 2>&1; then
-    apt-get update >/dev/null 2>&1 && \
-    apt-get upgrade -y >/dev/null 2>&1 && \
-    apt-get autoremove -y >/dev/null 2>&1 && \
-    success "System updated (apt)" || \
-    warning "System update failed (apt)"
-elif command -v yum >/dev/null 2>&1; then
-    yum update -y >/dev/null 2>&1 && \
-    yum autoremove -y >/dev/null 2>&1 && \
-    success "System updated (yum)" || \
-    warning "System update failed (yum)"
-elif command -v dnf >/dev/null 2>&1; then
-    dnf update -y >/dev/null 2>&1 && \
-    dnf autoremove -y >/dev/null 2>&1 && \
-    success "System updated (dnf)" || \
-    warning "System update failed (dnf)"
-else
-    warning "Package manager not found (skipping updates)"
+if command -v apt-get >/dev/null; then
+    apt-get update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -y upgrade >/dev/null 2>&1 || warning "Update failed"
+    apt-get -y autoremove >/dev/null 2>&1
+    apt-get clean >/dev/null 2>&1
+elif command -v yum >/dev/null; then
+    yum -y update >/dev/null 2>&1 || warning "Update failed"
+    yum -y autoremove >/dev/null 2>&1
+    yum clean all >/dev/null 2>&1
+elif command -v dnf >/dev/null; then
+    dnf -y update >/dev/null 2>&1 || warning "Update failed"
+    dnf -y autoremove >/dev/null 2>&1
+    dnf clean all >/dev/null 2>&1
 fi
 
 # 5. Apply All Changes
