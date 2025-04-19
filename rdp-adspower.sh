@@ -62,7 +62,7 @@ sudo apt install -y curl gdebi-core
 
 # Download AdsPower .deb package
 echo -e "${INFO}Downloading AdsPower package...${NC}"
-curl -O https://version.adspower.net/software/linux-x64-global/AdsPower-Global-5.9.14-x64.deb
+curl -O https://version.adspower.net/software/win64-global/AdsPower-Global-7.3.26-x64.exe
 
 # Install AdsPower using gdebi
 echo -e "${INFO}Installing AdsPower using gdebi...${NC}"
