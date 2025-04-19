@@ -66,7 +66,7 @@ curl -O https://version.adspower.net/software/win64-global/AdsPower-Global-7.3.2
 
 # Install AdsPower using gdebi
 echo -e "${INFO}Installing AdsPower using gdebi...${NC}"
-sudo gdebi -n AdsPower-Global-5.9.14-x64.deb
+sudo gdebi -n AdsPower-Global-7.3.26-x64.exe
 
 # Install XFCE and XRDP
 echo -e "${INFO}Installing XFCE Desktop for lower resource usage...${NC}"
