@@ -62,11 +62,11 @@ sudo apt install -y curl gdebi-core
 
 # Download AdsPower .deb package
 echo -e "${INFO}Downloading AdsPower package...${NC}"
-curl -O https://version.adspower.net/software/win64-global/AdsPower-Global-7.3.26-x64.exe
+curl -O https://version.adspower.net/software/linux-x64-global/AdsPower-Global-7.3.26-x64.deb
 
 # Install AdsPower using gdebi
 echo -e "${INFO}Installing AdsPower using gdebi...${NC}"
-sudo gdebi -n AdsPower-Global-7.3.26-x64.exe
+sudo gdebi -n AdsPower-Global-7.3.26-x64.deb
 
 # Install XFCE and XRDP
 echo -e "${INFO}Installing XFCE Desktop for lower resource usage...${NC}"
