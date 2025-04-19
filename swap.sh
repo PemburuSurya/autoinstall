@@ -37,7 +37,7 @@ fi
 # 2. Konfigurasi Swapfile
 # ==========================================
 SWAPFILE="/swapfile"
-SWAP_SIZE="10G"  # Ukuran swapfile
+SWAP_SIZE="16G"  # Ukuran swapfile
 
 # Hitung kebutuhan swap dinamis
 TOTAL_RAM=$(free -g | awk '/Mem:/ {print $2}')
