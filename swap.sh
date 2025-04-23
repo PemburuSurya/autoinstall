@@ -37,14 +37,14 @@ fi
 # 2. Konfigurasi Swapfile
 # ==========================================
 SWAPFILE="/swapfile"
-SWAP_SIZE="16G"  # Ukuran swapfile
+SWAP_SIZE="10G"  # Ukuran swapfile
 
 # Hitung kebutuhan swap dinamis
 TOTAL_RAM=$(free -g | awk '/Mem:/ {print $2}')
 if [[ $TOTAL_RAM -lt 2 ]]; then
     SWAP_SIZE="4G"
 elif [[ $TOTAL_RAM -lt 8 ]]; then
-    SWAP_SIZE="16G"
+    SWAP_SIZE="10G"
 fi
 
 message "\nKonfigurasi swapfile:"
