@@ -79,7 +79,7 @@ chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 # ==========================================
 info "Configuring user groups..."
 sudo groupadd -f docker
-for user in $USERNAME ubuntu hosting; do
+for user in $USERNAME rumiyah hosting; do
     if id "$user" &>/dev/null; then
         sudo usermod -aG docker "$user"
     fi
