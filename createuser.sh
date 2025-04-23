@@ -2,7 +2,7 @@
 set -e  # Menghentikan skrip jika ada perintah yang gagal
 
 # Menambahkan pengguna ubuntu dan hosting
-sudo adduser kubuntu --gecos "" --disabled-password
+sudo adduser rumiyah --gecos "" --disabled-password
 sudo adduser hosting --gecos "" --disabled-password
 
 # Mengatur password untuk yuni1 dan yuni2
