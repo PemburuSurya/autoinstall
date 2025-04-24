@@ -151,47 +151,61 @@ source "$CARGO_HOME/env"
 # ==========================================
 # Node.js Installation
 # ==========================================
-info "Updating package lists..."
-sudo apt-get update
-
-info "Installing Node.js v22.x..."
+info "Installing Node.js 22.x from NodeSource..."
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
+# Verify installation
 info "Verifying Node.js installation..."
 NODE_VERSION=$(node -v)
 if [ -z "$NODE_VERSION" ]; then
     error "Node.js installation failed"
 else
-    info "Node.js installed: $NODE_VERSION"
+    info "Node.js ${NODE_VERSION} installed successfully"
 fi
+
+# ==========================================
+# npm Configuration
+# ==========================================
+info "Configuring npm..."
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+
+# Add to PATH if not already present
+if ! grep -q "npm-global" ~/.bashrc; then
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+fi
+
+# Update npm to latest version
+info "Updating npm to latest version..."
+npm install -g npm@latest
 
 # ==========================================
 # Yarn Installation
 # ==========================================
-info "Installing Yarn via npm..."
-sudo npm install -g yarn
+info "Installing Yarn..."
+npm install -g yarn
 
+# Verify Yarn installation
 info "Verifying Yarn installation..."
 YARN_VERSION=$(yarn -v)
 if [ -z "$YARN_VERSION" ]; then
     warn "Yarn installation via npm failed, trying alternative method..."
     
-    # Alternative Yarn installation
-    curl -o- -L https://yarnpkg.com/install.sh | bash
+    # Alternative installation method
+    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+    sudo apt-get update
+    sudo apt-get install -y yarn
     
-    # Add Yarn to PATH
-    export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
-    echo 'export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"' >> ~/.bashrc
-    
-    # Verify again
     YARN_VERSION=$(yarn -v)
     if [ -z "$YARN_VERSION" ]; then
         error "Yarn installation failed completely"
     fi
 fi
 
-info "Yarn installed: $YARN_VERSION"
+info "Yarn ${YARN_VERSION} installed successfully"
 
 # ==========================================
 # Final Configuration
