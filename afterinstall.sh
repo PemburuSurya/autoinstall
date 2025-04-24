@@ -4,7 +4,7 @@ set -euo pipefail  # More strict error handling
 # ==========================================
 # Configuration Variables
 # ==========================================
-GO_VERSION="1.22.4"
+GO_VERSION="1.24.2"
 GO_ARCH="linux-amd64"
 DOCKER_COMPOSE_VERSION="v2.20.2"
 USERNAME=$(whoami)  # Get current username
