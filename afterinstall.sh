@@ -222,19 +222,14 @@ info "Yarn ${YARN_VERSION} installed successfully"
 # ==========================================
 # Final Configuration
 # ==========================================
-info "Final system configuration..."
+info "Finalizing setup..."
 sudo systemctl enable --now netfilter-persistent
 
-# Safe PS1 configuration for .bashrc
 if ! grep -q "PS1" ~/.bashrc; then
-    cat << 'EOF' >> ~/.bashrc
-# Set PS1 prompt safely
-if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
+    echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
 fi
-PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-EOF
-fi
+
+cat <<EOF
 # ==========================================
 # Completion Message
 # ==========================================
