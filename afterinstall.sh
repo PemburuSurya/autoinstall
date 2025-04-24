@@ -27,8 +27,13 @@ function error() {
 
 function install_packages() {
     info "Installing packages: $*"
-    sudo apt install -y "$@"
+    if ! sudo apt install -y "$@"; then
+        error "Failed to install packages: $*"
+    fi
 }
+
+# Initialize PS1 safely to prevent unbound variable errors
+[ -z "${PS1:-}" ] && PS1="\\$ "
 
 # ==========================================
 # System Update
@@ -71,9 +76,9 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 # Install as Docker CLI plugin
 DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-mkdir -p $DOCKER_CONFIG/cli-plugins
-curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o $DOCKER_CONFIG/cli-plugins/docker-compose
-chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+mkdir -p "$DOCKER_CONFIG/cli-plugins"
+curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o "$DOCKER_CONFIG/cli-plugins/docker-compose"
+chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose"
 
 # ==========================================
 # User Configuration
@@ -151,6 +156,13 @@ source "$CARGO_HOME/env"
 # ==========================================
 # Node.js Installation
 # ==========================================
+info "Cleaning up any existing Node.js/npm installations..."
+sudo apt remove --purge nodejs npm -y || warn "No existing Node.js to remove"
+sudo rm -rf /etc/apt/sources.list.d/nodesource.list
+sudo rm -rf /usr/lib/node_modules
+sudo rm -rf ~/.npm
+sudo apt autoremove -y
+
 info "Installing Node.js 22.x from NodeSource..."
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
@@ -213,9 +225,9 @@ info "Yarn ${YARN_VERSION} installed successfully"
 info "Final system configuration..."
 sudo systemctl enable --now netfilter-persistent
 
-# Fix potential PS1 error in .bashrc
+# Fix PS1 in .bashrc safely
 if ! grep -q "PS1" ~/.bashrc; then
-    echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
+    echo '[ -z "${PS1:-}" ] && PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
 fi
 
 # ==========================================
@@ -251,5 +263,3 @@ node -v
 yarn -v
 npm -v
 EOF
-
-
