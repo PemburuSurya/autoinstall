@@ -43,9 +43,10 @@ info "Installing essential build tools..."
 install_packages \
     git clang cmake build-essential openssl pkg-config libssl-dev \
     wget htop tmux jq make gcc tar ncdu protobuf-compiler \
-    npm nodejs default-jdk aptitude squid apache2-utils \
+    npm default-jdk aptitude squid apache2-utils file lsof \
     iptables iptables-persistent openssh-server sed lz4 aria2 pv \
-    python3 python3-venv python3-pip screen snapd flatpak file
+    python3 python3-venv python3-pip python3-dev screen snapd flatpak \
+    nano automake autoconf nvme-cli libgbm1 libleveldb-dev bsdmainutils unzip
 
 # ==========================================
 # Docker Installation
@@ -101,12 +102,6 @@ sudo add-apt-repository ppa:openjdk-r/ppa -y
 sudo apt update
 install_packages openjdk-11-jdk
 
-# Yarn
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-sudo apt update
-install_packages yarn
-
 # ==========================================
 # Go Installation (Improved)
 # ==========================================
@@ -154,6 +149,51 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-mod
 source "$CARGO_HOME/env"
 
 # ==========================================
+# Node.js Installation
+# ==========================================
+info "Updating package lists..."
+sudo apt-get update
+
+info "Installing Node.js v22.x..."
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+info "Verifying Node.js installation..."
+NODE_VERSION=$(node -v)
+if [ -z "$NODE_VERSION" ]; then
+    error "Node.js installation failed"
+else
+    info "Node.js installed: $NODE_VERSION"
+fi
+
+# ==========================================
+# Yarn Installation
+# ==========================================
+info "Installing Yarn via npm..."
+sudo npm install -g yarn
+
+info "Verifying Yarn installation..."
+YARN_VERSION=$(yarn -v)
+if [ -z "$YARN_VERSION" ]; then
+    warn "Yarn installation via npm failed, trying alternative method..."
+    
+    # Alternative Yarn installation
+    curl -o- -L https://yarnpkg.com/install.sh | bash
+    
+    # Add Yarn to PATH
+    export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+    echo 'export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"' >> ~/.bashrc
+    
+    # Verify again
+    YARN_VERSION=$(yarn -v)
+    if [ -z "$YARN_VERSION" ]; then
+        error "Yarn installation failed completely"
+    fi
+fi
+
+info "Yarn installed: $YARN_VERSION"
+
+# ==========================================
 # Final Configuration
 # ==========================================
 info "Final system configuration..."
@@ -174,6 +214,8 @@ INSTALLATION COMPLETE!
 - System updated and essential packages installed
 - Docker and Docker Compose ${DOCKER_COMPOSE_VERSION} installed
 - Development tools (Go ${GO_VERSION}, Rust, Node.js, etc.) installed
+- Node.js $NODE_VERSION installed
+- Yarn $YARN_VERSION installed
 - Visual Studio Code installed via Snap
 ================================================
 
@@ -189,4 +231,11 @@ IMPORTANT NEXT STEPS:
 
 4. Verify Go installation:
    go version
+   
+5. Other Verification commands:
+node -v
+yarn -v
+npm -v
 EOF
+
+
