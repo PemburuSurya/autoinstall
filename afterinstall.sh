@@ -45,7 +45,7 @@ install_packages \
     wget htop tmux jq make gcc tar ncdu protobuf-compiler \
     npm nodejs default-jdk aptitude squid apache2-utils \
     iptables iptables-persistent openssh-server sed lz4 aria2 pv \
-    python3 python3-venv python3-pip screen snapd flatpak
+    python3 python3-venv python3-pip screen snapd flatpak file
 
 # ==========================================
 # Docker Installation
@@ -108,14 +108,16 @@ sudo apt update
 install_packages yarn
 
 # ==========================================
-# Go Installation
+# Go Installation (Improved)
 # ==========================================
 info "Installing Go ${GO_VERSION}..."
-curl -OL "https://go.dev/dl/go${GO_VERSION}.${GO_ARCH}.tar.gz"
+GO_TAR_FILE="go${GO_VERSION}.${GO_ARCH}.tar.gz"
+curl -OL "https://go.dev/dl/${GO_TAR_FILE}"
 
-if file "go${GO_VERSION}.${GO_ARCH}.tar.gz" | grep -q "gzip compressed data"; then
-    sudo tar -C /usr/local -xzf "go${GO_VERSION}.${GO_ARCH}.tar.gz"
-    rm "go${GO_VERSION}.${GO_ARCH}.tar.gz"
+# Verify the download is a valid tar.gz file
+if tar -tzf "$GO_TAR_FILE" >/dev/null 2>&1; then
+    sudo tar -C /usr/local -xzf "$GO_TAR_FILE"
+    rm "$GO_TAR_FILE"
     
     # Add to PATH
     export PATH=$PATH:/usr/local/go/bin
@@ -128,7 +130,7 @@ if file "go${GO_VERSION}.${GO_ARCH}.tar.gz" | grep -q "gzip compressed data"; th
         info "Go installed: $(go version)"
     fi
 else
-    error "Invalid Go download"
+    error "Invalid Go download (file is not a valid tar.gz archive)"
 fi
 
 # ==========================================
