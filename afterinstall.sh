@@ -58,7 +58,7 @@ install_packages \
 # ==========================================
 info "Setting up Docker..."
 install_packages \
-    apt-transport-https ca-certificates curl software-properties-common
+    apt-transport-https ca-certificates curl software-properties-common lsb-release gnupg2
 
 # Add Docker repository
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
