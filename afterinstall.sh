@@ -172,35 +172,28 @@ if ! grep -q "PS1" ~/.bashrc; then
     echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
 fi
 
+source ~/.bashrc
+
 # ==========================================
-# Completion Message
+# Done
 # ==========================================
 cat <<EOF
+
 ================================================
-INSTALLATION COMPLETE!
-- System updated and essential packages installed
-- Docker and Docker Compose ${DOCKER_COMPOSE_VERSION} installed
-- Development tools (Go ${GO_VERSION}, Rust, Node.js, etc.) installed
-- Node.js $NODE_VERSION installed
-- Yarn $YARN_VERSION installed
-- Visual Studio Code installed via Snap
+✔️  INSTALLATION COMPLETE!
+- Docker & Docker Compose (v2.20.2)
+- Node.js (setup‐22.x), npm, Yarn
+- Go (1.24.2), Rust
+- VS Code & Flatpak
 ================================================
 
-IMPORTANT NEXT STEPS:
-1. Run this command or restart your shell to apply changes:
+Next steps:
+1. Run or relaunch your shell:
    source ~/.bashrc
-
-2. Verify Rust installation:
-   rustc --version
-   cargo --version
-
-3. For Docker to work without sudo, you may need to log out and back in.
-
-4. Verify Go installation:
+2. Verify:
    go version
-   
-5. Other Verification commands:
-node -v
-yarn -v
-npm -v
+   rustc --version && cargo --version
+   node -v && npm -v && yarn -v
+3. Log out & log back in to finalize Docker group permissions.
+
 EOF
