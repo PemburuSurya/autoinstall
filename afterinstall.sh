@@ -32,13 +32,6 @@ function install_packages() {
     fi
 }
 
-# Initialize PS1 safely to prevent unbound variable errors
-if [ -z "${debian_chroot:-}" ]; then
-    PS1="\\$ "
-else
-    PS1="\\[$debian_chroot\\]\\$ "
-fi
-
 # ==========================================
 # System Update
 # ==========================================
@@ -228,10 +221,6 @@ info "Yarn ${YARN_VERSION} installed successfully"
 # ==========================================
 info "Finalizing setup..."
 sudo systemctl enable --now netfilter-persistent
-
-if ! grep -q "PS1" ~/.bashrc; then
-    echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
-fi
 
 cat <<EOF
 # ==========================================
