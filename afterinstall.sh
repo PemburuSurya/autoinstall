@@ -158,11 +158,6 @@ source "$CARGO_HOME/env"
 info "Final system configuration..."
 sudo systemctl enable --now netfilter-persistent
 
-# Fix potential PS1 error in .bashrc
-if ! grep -q "PS1" ~/.bashrc; then
-    echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
-fi
-
 # ==========================================
 # Completion Message
 # ==========================================
