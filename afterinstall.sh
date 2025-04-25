@@ -33,7 +33,11 @@ function install_packages() {
 }
 
 # Initialize PS1 safely to prevent unbound variable errors
-[ -z "${PS1:-}" ] && PS1="\\$ "
+if [ -z "${debian_chroot:-}" ]; then
+    PS1="\\$ "
+else
+    PS1="\\[$debian_chroot\\]\\$ "
+fi
 
 # ==========================================
 # System Update
