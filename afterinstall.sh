@@ -43,17 +43,17 @@ info "Installing essential build tools..."
 install_packages \
     git clang cmake build-essential openssl pkg-config libssl-dev \
     wget htop tmux jq make gcc tar ncdu protobuf-compiler \
-    default-jdk aptitude squid apache2-utils file lsof \
+    default-jdk npm nodejs aptitude squid apache2-utils file lsof \
     iptables iptables-persistent openssh-server sed lz4 aria2 pv \
     python3 python3-venv python3-pip python3-dev screen snapd flatpak \
-    nano automake autoconf nvme-cli libgbm1 libleveldb-dev bsdmainutils unzip
+    nano automake autoconf nvme-cli libgbm1 libleveldb-dev bsdmainutils unzip lsb-release gnupg2
 
 # ==========================================
 # Docker Installation
 # ==========================================
 info "Setting up Docker..."
 install_packages \
-    apt-transport-https ca-certificates curl software-properties-common lsb-release gnupg2
+    apt-transport-https ca-certificates curl software-properties-common
 
 # Add Docker repository
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -102,20 +102,11 @@ sudo add-apt-repository ppa:openjdk-r/ppa -y
 sudo apt update
 install_packages openjdk-11-jdk
 
-#nodejs
-sudo apt-get update
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs
-node -v
-sudo npm install -g yarn
-yarn -v
-
 # Yarn
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 sudo apt update
 install_packages yarn
-export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 
 # ==========================================
 # Go Installation
@@ -172,28 +163,29 @@ if ! grep -q "PS1" ~/.bashrc; then
     echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
 fi
 
-source ~/.bashrc
-
 # ==========================================
-# Done
+# Completion Message
 # ==========================================
 cat <<EOF
 
 ================================================
-✔️  INSTALLATION COMPLETE!
-- Docker & Docker Compose (v2.20.2)
-- Node.js (setup‐22.x), npm, Yarn
-- Go (1.24.2), Rust
-- VS Code & Flatpak
+INSTALLATION COMPLETE!
+- System updated and essential packages installed
+- Docker and Docker Compose ${DOCKER_COMPOSE_VERSION} installed
+- Development tools (Go ${GO_VERSION}, Rust, Node.js, etc.) installed
+- Visual Studio Code installed via Snap
 ================================================
 
-Next steps:
-1. Run or relaunch your shell:
+IMPORTANT NEXT STEPS:
+1. Run this command or restart your shell to apply changes:
    source ~/.bashrc
-2. Verify:
-   go version
-   rustc --version && cargo --version
-   node -v && npm -v && yarn -v
-3. Log out & log back in to finalize Docker group permissions.
 
+2. Verify Rust installation:
+   rustc --version
+   cargo --version
+
+3. For Docker to work without sudo, you may need to log out and back in.
+
+4. Verify Go installation:
+   go version
 EOF
