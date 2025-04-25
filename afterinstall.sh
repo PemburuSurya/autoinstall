@@ -217,17 +217,21 @@ fi
 info "Yarn ${YARN_VERSION} installed successfully"
 
 # ==========================================
-# Final Configuration
+# Final Configuration: Fix PS1 error
 # ==========================================
-info "Finalizing setup..."
-sudo systemctl enable --now netfilter-persistent
+info "Fixing PS1 error in .bashrc..."
+# Ensure PS1 is only set if not already set
+if ! grep -q 'PS1' ~/.bashrc; then
+    echo 'if [ -z "$PS1" ]; then PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "; fi' >> ~/.bashrc
+fi
 
-cat <<EOF
+# Reload .bashrc to apply changes
+source ~/.bashrc
+
 # ==========================================
 # Completion Message
 # ==========================================
 cat <<EOF
-
 ================================================
 INSTALLATION COMPLETE!
 - System updated and essential packages installed
