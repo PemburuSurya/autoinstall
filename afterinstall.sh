@@ -27,9 +27,7 @@ function error() {
 
 function install_packages() {
     info "Installing packages: $*"
-    if ! sudo apt install -y "$@"; then
-        error "Failed to install packages: $*"
-    fi
+    sudo apt install -y "$@"
 }
 
 # ==========================================
@@ -73,9 +71,9 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 # Install as Docker CLI plugin
 DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-mkdir -p "$DOCKER_CONFIG/cli-plugins"
-curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o "$DOCKER_CONFIG/cli-plugins/docker-compose"
-chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose"
+mkdir -p $DOCKER_CONFIG/cli-plugins
+curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o $DOCKER_CONFIG/cli-plugins/docker-compose
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 
 # ==========================================
 # User Configuration
@@ -104,17 +102,30 @@ sudo add-apt-repository ppa:openjdk-r/ppa -y
 sudo apt update
 install_packages openjdk-11-jdk
 
+#nodejs
+sudo apt-get update
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node -v
+sudo npm install -g yarn
+yarn -v
+
+# Yarn
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo apt update
+install_packages yarn
+export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+
 # ==========================================
-# Go Installation (Improved)
+# Go Installation
 # ==========================================
 info "Installing Go ${GO_VERSION}..."
-GO_TAR_FILE="go${GO_VERSION}.${GO_ARCH}.tar.gz"
-curl -OL "https://go.dev/dl/${GO_TAR_FILE}"
+curl -OL "https://go.dev/dl/go${GO_VERSION}.${GO_ARCH}.tar.gz"
 
-# Verify the download is a valid tar.gz file
-if tar -tzf "$GO_TAR_FILE" >/dev/null 2>&1; then
-    sudo tar -C /usr/local -xzf "$GO_TAR_FILE"
-    rm "$GO_TAR_FILE"
+if file "go${GO_VERSION}.${GO_ARCH}.tar.gz" | grep -q "gzip compressed data"; then
+    sudo tar -C /usr/local -xzf "go${GO_VERSION}.${GO_ARCH}.tar.gz"
+    rm "go${GO_VERSION}.${GO_ARCH}.tar.gz"
     
     # Add to PATH
     export PATH=$PATH:/usr/local/go/bin
@@ -127,7 +138,7 @@ if tar -tzf "$GO_TAR_FILE" >/dev/null 2>&1; then
         info "Go installed: $(go version)"
     fi
 else
-    error "Invalid Go download (file is not a valid tar.gz archive)"
+    error "Invalid Go download"
 fi
 
 # ==========================================
@@ -151,73 +162,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-mod
 source "$CARGO_HOME/env"
 
 # ==========================================
-# Node.js Installation
-# ==========================================
-info "Cleaning up any existing Node.js/npm installations..."
-sudo apt remove --purge nodejs npm -y || warn "No existing Node.js to remove"
-sudo rm -rf /etc/apt/sources.list.d/nodesource.list
-sudo rm -rf /usr/lib/node_modules
-sudo rm -rf ~/.npm
-sudo apt autoremove -y
-
-info "Installing Node.js 22.x from NodeSource..."
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Verify installation
-info "Verifying Node.js installation..."
-NODE_VERSION=$(node -v)
-if [ -z "$NODE_VERSION" ]; then
-    error "Node.js installation failed"
-else
-    info "Node.js ${NODE_VERSION} installed successfully"
-fi
-
-# ==========================================
-# npm Configuration
-# ==========================================
-info "Configuring npm..."
-mkdir -p ~/.npm-global
-npm config set prefix '~/.npm-global'
-
-# Add to PATH if not already present
-if ! grep -q "npm-global" ~/.bashrc; then
-    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
-    source ~/.bashrc
-fi
-
-# Update npm to latest version
-info "Updating npm to latest version..."
-npm install -g npm@latest
-
-# ==========================================
-# Yarn Installation
-# ==========================================
-info "Installing Yarn..."
-npm install -g yarn
-
-# Verify Yarn installation
-info "Verifying Yarn installation..."
-YARN_VERSION=$(yarn -v)
-if [ -z "$YARN_VERSION" ]; then
-    warn "Yarn installation via npm failed, trying alternative method..."
-    
-    # Alternative installation method
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-    sudo apt-get update
-    sudo apt-get install -y yarn
-    
-    YARN_VERSION=$(yarn -v)
-    if [ -z "$YARN_VERSION" ]; then
-        error "Yarn installation failed completely"
-    fi
-fi
-
-info "Yarn ${YARN_VERSION} installed successfully"
-
-# ==========================================
-# Final Configuration: Fix PS1 error
+# Final Configuration
 # ==========================================
 info "Final system configuration..."
 sudo systemctl enable --now netfilter-persistent
@@ -226,9 +171,6 @@ sudo systemctl enable --now netfilter-persistent
 if ! grep -q "PS1" ~/.bashrc; then
     echo 'PS1="\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> ~/.bashrc
 fi
-
-# Reload .bashrc to apply changes
-source ~/.bashrc
 
 # ==========================================
 # Completion Message
