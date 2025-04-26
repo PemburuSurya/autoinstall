@@ -43,17 +43,17 @@ info "Installing essential build tools..."
 install_packages \
     git clang cmake build-essential openssl pkg-config libssl-dev \
     wget htop tmux jq make gcc tar ncdu protobuf-compiler \
-    default-jdk npm nodejs aptitude squid apache2-utils file lsof \
+    default-jdk aptitude squid apache2-utils file lsof \
     iptables iptables-persistent openssh-server sed lz4 aria2 pv \
     python3 python3-venv python3-pip python3-dev screen snapd flatpak \
-    nano automake autoconf nvme-cli libgbm1 libleveldb-dev bsdmainutils unzip lsb-release gnupg2
+    nano automake autoconf nvme-cli libgbm1 libleveldb-dev bsdmainutils unzip
 
 # ==========================================
 # Docker Installation
 # ==========================================
 info "Setting up Docker..."
 install_packages \
-    apt-transport-https ca-certificates curl software-properties-common
+    apt-transport-https ca-certificates curl software-properties-common lsb-release gnupg2
 
 # Add Docker repository
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -102,11 +102,17 @@ sudo add-apt-repository ppa:openjdk-r/ppa -y
 sudo apt update
 install_packages openjdk-11-jdk
 
+# Nodejs
+sudo apt-get update
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node -v
+sudo npm install -g yarn
+yarn -v
+
 # Yarn
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-sudo apt update
-install_packages yarn
+curl -o- -L https://yarnpkg.com/install.sh | bash
+export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 
 # ==========================================
 # Go Installation
