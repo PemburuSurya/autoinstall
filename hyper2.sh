@@ -1,19 +1,31 @@
 #!/bin/bash
+echo "==============================================="
+echo "🚀 Hyperspace Node Auto-Installer"
+echo "==============================================="
 
-# Buat file .pem
+# Minta input private key dari user
+read -p "Masukkan PRIVATE KEY kamu: " PRIVATE_KEY
+
+# Cek kalau input kosong
+if [ -z "$PRIVATE_KEY" ]; then
+  echo "❌ Private key tidak boleh kosong. Exit."
+  exit 1
+fi
+
+# Buat file .pem dari input
 echo "Membuat file .pem..."
 cat > /root/.pem <<EOF
-ISI_PRIVATE_KEY_DISINI
+$PRIVATE_KEY
 EOF
 
-# Set permission file .pem
+# Set permission yang benar
 chmod 600 /root/.pem
 
-# Jalankan hyperspace node
-echo "Menjalankan hyperspace node di screen session 'hyperspace'..."
-screen -dmS hyperspace bash -c 'source /root/.bashrc && aios-cli start'
+# Jalankan Hyperspace node di dalam screen
+echo "Menjalankan Hyperspace node di background (screen)..."
+screen -dmS hyperspace bash -c 'aios-cli start'
 
-# Informasi ke user
-echo "✅ Hyperspace node telah berjalan di screen."
-echo "Untuk melihat node jalannya, ketik: screen -r hyperspace"
-echo "Untuk keluar dari screen tanpa menghentikan node, tekan: Ctrl+A lalu D"
+echo ""
+echo "🚀 Hyperspace node telah dijalankan di dalam screen session 'hyperspace'!"
+echo "👉 Untuk melihat node: screen -r hyperspace"
+echo "👉 Untuk keluar dari screen (tanpa mematikan node): tekan Ctrl+A lalu D"
