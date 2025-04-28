@@ -1,17 +1,19 @@
 #!/bin/bash
-# Buat file .pem (isi manual di sini atau edit nanti)
+
+# Buat file .pem
 echo "Membuat file .pem..."
 cat > /root/.pem <<EOF
 ISI_PRIVATE_KEY_DISINI
 EOF
 
-# Pastikan .pem file punya permission yang benar
+# Set permission file .pem
 chmod 600 /root/.pem
 
-# Start hyperspace node
-echo "Menjalankan hyperspace node..."
-screen -dmS hyperspace bash -c 'aios-cli start'
+# Jalankan hyperspace node
+echo "Menjalankan hyperspace node di screen session 'hyperspace'..."
+screen -dmS hyperspace bash -c 'source /root/.bashrc && aios-cli start'
 
-echo "🚀 Hyperspace node telah dijalankan di dalam screen session 'hyperspace'!"
-echo "Gunakan perintah berikut untuk attach ke screen:"
-echo "screen -r hyperspace"
+# Informasi ke user
+echo "✅ Hyperspace node telah berjalan di screen."
+echo "Untuk melihat node jalannya, ketik: screen -r hyperspace"
+echo "Untuk keluar dari screen tanpa menghentikan node, tekan: Ctrl+A lalu D"
