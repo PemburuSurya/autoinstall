@@ -193,7 +193,7 @@ sleep 1
 # Enhanced Hive connection with retry logic
 info_msg "Mencoba terhubung ke Hive..."
 max_retries=3
-retry_delay=15
+retry_delay=5
 for ((i=1; i<=$max_retries; i++)); do
     if aios-cli hive connect; then
         success_msg "Berhasil terhubung ke Hive"
