@@ -43,7 +43,7 @@ info "Installing essential build tools..."
 install_packages \
     git clang cmake build-essential openssl pkg-config libssl-dev \
     wget htop tmux jq make gcc tar ncdu protobuf-compiler \
-    npm nodejs default-jdk aptitude squid apache2-utils \
+    default-jdk aptitude squid apache2-utils \
     iptables iptables-persistent openssh-server sed lz4 aria2 pv \
     python3 python3-venv python3-pip screen snapd flatpak lsof
 
@@ -73,7 +73,7 @@ DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
 mkdir -p $DOCKER_CONFIG/cli-plugins
 curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o $DOCKER_CONFIG/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
-
+sudo systemctl enable --now netfilter-persistent
 # ==========================================
 # User Configuration
 # ==========================================
@@ -101,12 +101,60 @@ sudo add-apt-repository ppa:openjdk-r/ppa -y
 sudo apt update
 install_packages openjdk-11-jdk
 
-# Yarn
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-sudo apt update
-install_packages yarn
+# ==========================================
+# Nodejs Installation
+# ==========================================
+# Check for existing Node.js installations
+EXISTING_NODE=$(which node)
+if [ -n "$EXISTING_NODE" ]; then
+    show "Existing Node.js found at $EXISTING_NODE. The script will install the latest version system-wide."
+fi
 
+# Fetch the latest Node.js version dynamically
+show "Fetching latest Node.js version..." "progress"
+LATEST_VERSION=$(curl -s https://nodejs.org/dist/latest/ | grep -oP 'node-v\K\d+\.\d+\.\d+' | head -1)
+if [ -z "$LATEST_VERSION" ]; then
+    show "Failed to fetch latest Node.js version. Please check your internet connection." "error"
+    exit 1
+fi
+show "Latest Node.js version is $LATEST_VERSION"
+
+# Extract the major version for NodeSource setup
+MAJOR_VERSION=$(echo $LATEST_VERSION | cut -d. -f1)
+
+# Set up the NodeSource repository for the latest major version
+show "Setting up NodeSource repository for Node.js $MAJOR_VERSION.x..." "progress"
+curl -sL https://deb.nodesource.com/setup_${MAJOR_VERSION}.x | sudo -E bash -
+if [ $? -ne 0 ]; then
+    show "Failed to set up NodeSource repository." "error"
+    exit 1
+fi
+
+# Install Node.js and npm
+show "Installing Node.js and npm..." "progress"
+sudo apt-get install -y nodejs
+if [ $? -ne 0 ]; then
+    show "Failed to install Node.js and npm." "error"
+    exit 1
+fi
+
+# Verify installation and PATH availability
+show "Verifying installation..." "progress"
+if command -v node &> /dev/null && command -v npm &> /dev/null; then
+    NODE_VERSION=$(node -v)
+    NPM_VERSION=$(npm -v)
+    INSTALLED_NODE=$(which node)
+    if [ "$INSTALLED_NODE" = "/usr/bin/node" ]; then
+        show "Node.js $NODE_VERSION and npm $NPM_VERSION installed successfully at /usr/bin."
+    else
+        show "Node.js $NODE_VERSION and npm $NPM_VERSION installed, but another node executable is in PATH at $INSTALLED_NODE."
+        show "The system-wide installation is at /usr/bin/node. To prioritize it, ensure /usr/bin is before other paths in your PATH variable."
+    fi
+else
+    show "Installation completed, but node or npm not found in PATH." "error"
+    show "This is unusual as /usr/bin should be in PATH. Please ensure /usr/bin is in your PATH variable (e.g., export PATH=/usr/bin:$PATH) and restart your shell."
+    exit 1
+fi
 # ==========================================
 # Go Installation
 # ==========================================
@@ -155,7 +203,6 @@ source "$CARGO_HOME/env"
 # Final Configuration
 # ==========================================
 info "Final system configuration..."
-sudo systemctl enable --now netfilter-persistent
 
 # Fix potential PS1 error in .bashrc
 if ! grep -q "PS1" ~/.bashrc; then
