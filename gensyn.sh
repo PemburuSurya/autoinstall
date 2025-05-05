@@ -49,5 +49,3 @@ install_nodejs() {
 
 # Call the Node.js installation function
 install_nodejs
-
-# ... [keep the rest of your script] ...
