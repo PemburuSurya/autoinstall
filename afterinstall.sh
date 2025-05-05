@@ -4,9 +4,9 @@ set -euo pipefail  # More strict error handling
 # ==========================================
 # Configuration Variables
 # ==========================================
-GO_VERSION="1.24.2"
+GO_VERSION="1.22.2"  # Updated to latest stable Go version
 GO_ARCH="linux-amd64"
-DOCKER_COMPOSE_VERSION="v2.20.2"
+DOCKER_COMPOSE_VERSION="v2.26.1"  # Updated to latest version
 USERNAME=$(whoami)  # Get current username
 
 # ==========================================
@@ -27,14 +27,16 @@ function error() {
 
 function install_packages() {
     info "Installing packages: $*"
-    sudo apt install -y "$@"
+    sudo apt-get install -y "$@" || {
+        error "Failed to install packages: $*"
+    }
 }
 
 # ==========================================
 # System Update
 # ==========================================
 info "Updating system packages..."
-sudo apt update && sudo apt upgrade -y
+sudo apt-get update && sudo apt-get upgrade -y
 
 # ==========================================
 # Install Essential Packages
@@ -43,10 +45,10 @@ info "Installing essential build tools..."
 install_packages \
     git clang cmake build-essential openssl pkg-config libssl-dev \
     wget htop tmux jq make gcc tar ncdu protobuf-compiler \
-    default-jdk aptitude squid apache2-utils file lsof \
+    default-jdk aptitude squid apache2-utils file lsof zip unzip \
     iptables iptables-persistent openssh-server sed lz4 aria2 pv \
     python3 python3-venv python3-pip python3-dev screen snapd flatpak \
-    nano automake autoconf nvme-cli libgbm1 libleveldb-dev bsdmainutils unzip
+    nano automake autoconf nvme-cli libgbm-dev libleveldb-dev bsdmainutils unzip
 
 # ==========================================
 # Docker Installation
@@ -56,11 +58,15 @@ install_packages \
     apt-transport-https ca-certificates curl software-properties-common lsb-release gnupg2
 
 # Add Docker repository
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-sudo apt update
-install_packages docker-ce docker-ce-cli containerd.io
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+install_packages docker-ce docker-ce-cli containerd.io docker-buildx-plugin
 
 # ==========================================
 # Docker Compose Installation
@@ -83,6 +89,8 @@ sudo groupadd -f docker
 for user in $USERNAME rumiyah hosting; do
     if id "$user" &>/dev/null; then
         sudo usermod -aG docker "$user"
+    else
+        warn "User $user does not exist, skipping group addition"
     fi
 done
 
@@ -92,118 +100,102 @@ done
 info "Installing development tools..."
 
 # Visual Studio Code
-sudo snap install code --classic
+if ! command -v code &> /dev/null; then
+    sudo snap install code --classic
+else
+    info "VS Code already installed"
+fi
 
 # Flatpak setup
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+if ! flatpak remote-list | grep -q flathub; then
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+else
+    info "Flathub already configured"
+fi
 
 # OpenJDK
 sudo add-apt-repository ppa:openjdk-r/ppa -y
-sudo apt update
-install_packages openjdk-11-jdk
+sudo apt-get update
+install_packages openjdk-17-jdk  # Updated to LTS version
+
 # ==========================================
-# Nodejs Installation
+# Node.js Installation
 # ==========================================
-# Check for existing Node.js installations
-EXISTING_NODE=$(which node)
-if [ -n "$EXISTING_NODE" ]; then
-    show "Existing Node.js found at $EXISTING_NODE. The script will install the latest version system-wide."
-fi
-
-# Fetch the latest Node.js version dynamically
-show "Fetching latest Node.js version..." "progress"
-LATEST_VERSION=$(curl -s https://nodejs.org/dist/latest/ | grep -oP 'node-v\K\d+\.\d+\.\d+' | head -1)
-if [ -z "$LATEST_VERSION" ]; then
-    show "Failed to fetch latest Node.js version. Please check your internet connection." "error"
-    exit 1
-fi
-show "Latest Node.js version is $LATEST_VERSION"
-
-# Extract the major version for NodeSource setup
-MAJOR_VERSION=$(echo $LATEST_VERSION | cut -d. -f1)
-
-# Set up the NodeSource repository for the latest major version
-show "Setting up NodeSource repository for Node.js $MAJOR_VERSION.x..." "progress"
-curl -sL https://deb.nodesource.com/setup_${MAJOR_VERSION}.x | sudo -E bash -
-if [ $? -ne 0 ]; then
-    show "Failed to set up NodeSource repository." "error"
-    exit 1
-fi
-
-# Install Node.js and npm
-show "Installing Node.js and npm..." "progress"
-sudo apt-get install -y nodejs
-if [ $? -ne 0 ]; then
-    show "Failed to install Node.js and npm." "error"
-    exit 1
-fi
-
-# Verify installation and PATH availability
-show "Verifying installation..." "progress"
-if command -v node &> /dev/null && command -v npm &> /dev/null; then
-    NODE_VERSION=$(node -v)
-    NPM_VERSION=$(npm -v)
-    INSTALLED_NODE=$(which node)
-    if [ "$INSTALLED_NODE" = "/usr/bin/node" ]; then
-        show "Node.js $NODE_VERSION and npm $NPM_VERSION installed successfully at /usr/bin."
-    else
-        show "Node.js $NODE_VERSION and npm $NPM_VERSION installed, but another node executable is in PATH at $INSTALLED_NODE."
-        show "The system-wide installation is at /usr/bin/node. To prioritize it, ensure /usr/bin is before other paths in your PATH variable."
-    fi
+info "Installing Node.js..."
+if command -v node &> /dev/null; then
+    info "Node.js already installed: $(node --version)"
 else
-    show "Installation completed, but node or npm not found in PATH." "error"
-    show "This is unusual as /usr/bin should be in PATH. Please ensure /usr/bin is in your PATH variable (e.g., export PATH=/usr/bin:$PATH) and restart your shell."
-    exit 1
+    # Install using NodeSource
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    install_packages nodejs
+
+    # Verify installation
+    if ! command -v node &> /dev/null; then
+        error "Node.js installation failed"
+    else
+        info "Node.js installed: $(node --version)"
+        info "npm installed: $(npm --version)"
+    fi
 fi
 
 # ==========================================
 # Go Installation
 # ==========================================
 info "Installing Go ${GO_VERSION}..."
-curl -OL "https://go.dev/dl/go${GO_VERSION}.${GO_ARCH}.tar.gz"
-
-if file "go${GO_VERSION}.${GO_ARCH}.tar.gz" | grep -q "gzip compressed data"; then
-    sudo tar -C /usr/local -xzf "go${GO_VERSION}.${GO_ARCH}.tar.gz"
-    rm "go${GO_VERSION}.${GO_ARCH}.tar.gz"
-    
-    # Add to PATH
-    export PATH=$PATH:/usr/local/go/bin
-    grep -qxF 'export PATH=$PATH:/usr/local/go/bin' ~/.bashrc || echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-    
-    # Verify
-    if ! command -v go &> /dev/null; then
-        error "Go installation failed"
-    else
-        info "Go installed: $(go version)"
-    fi
+if command -v go &> /dev/null; then
+    info "Go already installed: $(go version)"
 else
-    error "Invalid Go download"
+    curl -OL "https://go.dev/dl/go${GO_VERSION}.${GO_ARCH}.tar.gz"
+
+    if file "go${GO_VERSION}.${GO_ARCH}.tar.gz" | grep -q "gzip compressed data"; then
+        sudo rm -rf /usr/local/go  # Remove previous installation if exists
+        sudo tar -C /usr/local -xzf "go${GO_VERSION}.${GO_ARCH}.tar.gz"
+        rm "go${GO_VERSION}.${GO_ARCH}.tar.gz"
+        
+        # Add to PATH
+        export PATH=$PATH:/usr/local/go/bin
+        grep -qxF 'export PATH=$PATH:/usr/local/go/bin' ~/.bashrc || echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+        
+        # Verify
+        if ! command -v go &> /dev/null; then
+            error "Go installation failed"
+        else
+            info "Go installed: $(go version)"
+        fi
+    else
+        error "Invalid Go download"
+    fi
 fi
 
 # ==========================================
-# Rust Installation (Improved)
+# Rust Installation
 # ==========================================
 info "Installing Rust..."
-export CARGO_HOME="$HOME/.cargo"
-export RUSTUP_HOME="$HOME/.rustup"
+if command -v rustc &> /dev/null; then
+    info "Rust already installed: $(rustc --version)"
+else
+    export CARGO_HOME="$HOME/.cargo"
+    export RUSTUP_HOME="$HOME/.rustup"
 
-# Install Rust non-interactively
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+    # Install Rust non-interactively
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile default
 
-# Add to PATH in a way that works for all shells
-{
-    echo 'export CARGO_HOME="$HOME/.cargo"'
-    echo 'export RUSTUP_HOME="$HOME/.rustup"'
-    echo 'export PATH="$CARGO_HOME/bin:$PATH"'
-} >> ~/.bashrc
+    # Add to PATH in a way that works for all shells
+    {
+        echo 'export CARGO_HOME="$HOME/.cargo"'
+        echo 'export RUSTUP_HOME="$HOME/.rustup"'
+        echo 'export PATH="$CARGO_HOME/bin:$PATH"'
+    } >> ~/.bashrc
 
-# Source the environment immediately
-source "$CARGO_HOME/env"
+    # Source the environment immediately
+    source "$CARGO_HOME/env"
+fi
 
 # ==========================================
 # Final Configuration
 # ==========================================
 info "Final system configuration..."
+sudo systemctl enable --now docker
 sudo systemctl enable --now netfilter-persistent
 
 # ==========================================
@@ -223,12 +215,13 @@ IMPORTANT NEXT STEPS:
 1. Run this command or restart your shell to apply changes:
    source ~/.bashrc
 
-2. Verify Rust installation:
+2. Verify installations:
+   docker --version
+   docker-compose --version
+   go version
    rustc --version
-   cargo --version
+   node --version
+   npm --version
 
 3. For Docker to work without sudo, you may need to log out and back in.
-
-4. Verify Go installation:
-   go version
 EOF
