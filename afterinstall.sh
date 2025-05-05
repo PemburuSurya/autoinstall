@@ -119,13 +119,23 @@ sudo apt-get update
 install_packages openjdk-17-jdk  # Updated to LTS version
 
 # ==========================================
-# Node.js Installation
+# Node.js Installation (Latest LTS Version)
 # ==========================================
-info "Installing Node.js..."
+info "Installing Node.js LTS and npm..."
 if command -v node &> /dev/null; then
-    info "Node.js already installed: $(node --version)"
+    CURRENT_NODE=$(node --version)
+    CURRENT_NPM=$(npm --version)
+    info "Node.js already installed: $CURRENT_NODE"
+    info "npm already installed: $CURRENT_NPM"
+    
+    # Check for updates
+    info "Checking for Node.js updates..."
+    LATEST_NODE_VERSION=$(curl -s https://nodejs.org/dist/latest-v18.x/ | grep -oP 'node-v\K\d+\.\d+\.\d+' | head -1)
+    if [ "$(node --version | cut -d'v' -f2)" != "$LATEST_NODE_VERSION" ]; then
+        warn "Newer Node.js version available ($LATEST_NODE_VERSION)"
+    fi
 else
-    # Install using NodeSource
+    # Install latest LTS using NodeSource
     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     install_packages nodejs
 
@@ -133,10 +143,16 @@ else
     if ! command -v node &> /dev/null; then
         error "Node.js installation failed"
     else
+        # Update npm to latest version
+        sudo npm install -g npm@latest
+        
         info "Node.js installed: $(node --version)"
         info "npm installed: $(npm --version)"
     fi
 fi
+
+# Additional tools
+sudo npm install -g yarn
 
 # ==========================================
 # Go Installation
