@@ -17,6 +17,14 @@ function error() {
     exit 1
 }
 
+function validate_swap_size() {
+    local size=$1
+    if [[ ! "$size" =~ ^[0-9]+[GgMm]$ ]]; then
+        error "Format ukuran swap tidak valid. Gunakan format seperti '4G' atau '8192M'"
+    fi
+    return 0
+}
+
 # ==========================================
 # 1. Verifikasi Environment
 # ==========================================
@@ -34,22 +42,30 @@ if [ -f /etc/sysctl.d/99-kuzco.conf ]; then
 fi
 
 # ==========================================
-# 2. Konfigurasi Swapfile
+# 2. Konfigurasi Swapfile - Input Interaktif
 # ==========================================
 SWAPFILE="/swapfile"
-SWAP_SIZE="10G"  # Ukuran swapfile
 
-# Hitung kebutuhan swap dinamis
+# Hitung RAM yang tersedia
 TOTAL_RAM=$(free -g | awk '/Mem:/ {print $2}')
-if [[ $TOTAL_RAM -lt 2 ]]; then
-    SWAP_SIZE="4G"
-elif [[ $TOTAL_RAM -lt 8 ]]; then
-    SWAP_SIZE="10G"
-fi
+RECOMMENDED_SWAP=$((TOTAL_RAM * 2))G
+
+message "\nInformasi sistem:"
+echo " - Total RAM: ${TOTAL_RAM}GB"
+echo " - Rekomendasi ukuran swap: $RECOMMENDED_SWAP"
+
+while true; do
+    read -rp "Masukkan ukuran swap yang diinginkan (contoh: 4G, 8192M): " SWAP_SIZE
+    SWAP_SIZE=${SWAP_SIZE^^}  # Konversi ke uppercase
+    
+    if validate_swap_size "$SWAP_SIZE"; then
+        break
+    fi
+done
 
 message "\nKonfigurasi swapfile:"
 echo " - Lokasi: $SWAPFILE"
-echo " - Ukuran: $SWAP_SIZE (RAM: ${TOTAL_RAM}GB)"
+echo " - Ukuran: $SWAP_SIZE"
 
 read -rp "Lanjutkan setup swapfile? (y/n) " confirm
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
@@ -75,7 +91,14 @@ fi
 message "Membuat swapfile baru ($SWAP_SIZE)..."
 if ! fallocate -l "$SWAP_SIZE" "$SWAPFILE"; then
     warning "fallocate gagal, mencoba dd..."
-    dd if=/dev/zero of="$SWAPFILE" bs=1G count=${SWAP_SIZE/G} status=progress || 
+    if [[ "$SWAP_SIZE" =~ G$ ]]; then
+        COUNT=${SWAP_SIZE/G}
+        UNIT="G"
+    else
+        COUNT=$((${SWAP_SIZE/M}/1024))
+        UNIT="G"
+    fi
+    dd if=/dev/zero of="$SWAPFILE" bs=1$UNIT count=$COUNT status=progress ||
         error "Gagal membuat swapfile"
 fi
 
