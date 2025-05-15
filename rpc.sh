@@ -18,20 +18,29 @@ error() { echo -e "${RED}✗ $*${NC}"; exit 1; }
 if [ "$(id -u)" -ne 0 ]; then
     error "Script must be run as root. Use sudo or switch to root user."
 fi
+
 # =============================================
 # 4. ETHEREUM-SPECIFIC OPTIMIZATIONS
 # =============================================
 status "Applying Ethereum-specific optimizations..."
 
+# 4.0 Create eth group first
+if ! getent group eth >/dev/null; then
+    groupadd eth
+    success "Created 'eth' group"
+fi
+
 # 4.1 Create dedicated users
 if ! id geth &>/dev/null; then
     useradd -m -s /bin/bash -U geth
     usermod -aG eth geth
+    success "Created 'geth' user"
 fi
 
 if ! id beacon &>/dev/null; then
     useradd -m -s /bin/bash -U beacon
     usermod -aG eth beacon
+    success "Created 'beacon' user"
 fi
 
 # 4.2 JWT secret setup
@@ -42,6 +51,9 @@ if [ ! -f /var/lib/secrets/jwt.hex ]; then
     openssl rand -hex 32 | tr -d '\n' > /var/lib/secrets/jwt.hex
     chown root:eth /var/lib/secrets/jwt.hex
     chmod 640 /var/lib/secrets/jwt.hex
+    success "Created JWT secret"
+else
+    success "JWT secret already exists (skipped)"
 fi
 
 # =============================================
