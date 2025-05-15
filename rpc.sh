@@ -24,36 +24,47 @@ fi
 # =============================================
 status "Applying Ethereum-specific optimizations..."
 
-# 4.0 Create eth group first
+# 4.0 Create eth group first (if not exists)
 if ! getent group eth >/dev/null; then
     groupadd eth
-    success "Created 'eth' group"
+    success "Created group 'eth'"
+else
+    warning "Group 'eth' already exists"
 fi
 
-# 4.1 Create dedicated users
+# 4.1 Create dedicated users and assign to 'eth' group
 if ! id geth &>/dev/null; then
-    useradd -m -s /bin/bash -U geth
+    useradd -m -s /bin/bash -g eth geth
+    success "Created user 'geth' and added to group 'eth'"
+else
+    warning "User 'geth' already exists"
     usermod -aG eth geth
-    success "Created 'geth' user"
 fi
 
 if ! id beacon &>/dev/null; then
-    useradd -m -s /bin/bash -U beacon
+    useradd -m -s /bin/bash -g eth beacon
+    success "Created user 'beacon' and added to group 'eth'"
+else
+    warning "User 'beacon' already exists"
     usermod -aG eth beacon
-    success "Created 'beacon' user"
 fi
+
+# Lock the users (no password login for security)
+passwd -l geth >/dev/null 2>&1
+passwd -l beacon >/dev/null 2>&1
 
 # 4.2 JWT secret setup
 mkdir -p /var/lib/secrets
 chgrp -R eth /var/lib/secrets
 chmod 750 /var/lib/secrets
+
 if [ ! -f /var/lib/secrets/jwt.hex ]; then
     openssl rand -hex 32 | tr -d '\n' > /var/lib/secrets/jwt.hex
     chown root:eth /var/lib/secrets/jwt.hex
     chmod 640 /var/lib/secrets/jwt.hex
-    success "Created JWT secret"
+    success "Created JWT secret at /var/lib/secrets/jwt.hex"
 else
-    success "JWT secret already exists (skipped)"
+    warning "JWT secret already exists"
 fi
 
 # =============================================
