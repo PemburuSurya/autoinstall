@@ -31,15 +31,6 @@ DEBIAN_FRONTEND=noninteractive apt-get -y upgrade >/dev/null
 DEBIAN_FRONTEND=noninteractive apt-get -y autoremove >/dev/null
 apt-get clean >/dev/null
 
-# Install essential packages
-status "Installing required utilities..."
-DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    curl iptables build-essential git wget lz4 jq \
-    make gcc nano automake autoconf tmux htop nvme-cli \
-    libgbm1 pkg-config libssl-dev libleveldb-dev tar clang \
-    bsdmainutils ncdu unzip libleveldb-dev screen fail2ban \
-    sysstat ntp libjemalloc-dev >/dev/null
-
 # =============================================
 # 2. SYSTEM LIMITS & KERNEL OPTIMIZATION
 # =============================================
