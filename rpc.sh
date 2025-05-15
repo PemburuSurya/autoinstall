@@ -161,26 +161,6 @@ ExecStart=/home/beacon/bin/prysm.sh beacon-chain \\
 [Install]
 WantedBy=multi-user.target
 EOF
-
-# =============================================
-# 7. FIREWALL CONFIGURATION
-# =============================================
-status "Configuring firewall..."
-
-ufw --force reset
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow 22/tcp comment 'SSH'
-ufw allow 8545/tcp comment 'Geth HTTP RPC'
-ufw allow 8551/tcp comment 'Geth Auth RPC'
-ufw allow 3500/tcp comment 'Prysm gRPC Gateway'
-ufw allow 4000/tcp comment 'Prysm RPC'
-ufw allow 12000/udp comment 'Prysm P2P'
-ufw allow 13000/tcp comment 'Prysm P2P'
-ufw allow 30303/tcp comment 'Ethereum P2P'
-ufw allow 30303/udp comment 'Ethereum P2P'
-ufw --force enable
-
 # =============================================
 # 8. FINALIZATION
 # =============================================
