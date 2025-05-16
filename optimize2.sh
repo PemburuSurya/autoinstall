@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# =============================================
+# CONFIGURATION
+# =============================================
 # Color codes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -8,19 +11,38 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Functions
+# Ethereum node user (change if needed)
+ETH_USER="ethereum"
+ETH_GROUP="ethereum"
+
+# =============================================
+# FUNCTIONS
+# =============================================
 status() { echo -e "\n${BLUE}>>> $*${NC}"; }
 success() { echo -e "${GREEN}✓ $*${NC}"; }
 warning() { echo -e "${YELLOW}⚠ $*${NC}"; }
 error() { echo -e "${RED}✗ $*${NC}"; exit 1; }
 
-# Check root
-if [ "$(id -u)" -ne 0 ]; then
-    error "Script must be run as root. Use sudo or switch to root user."
+check_root() {
+    if [ "$(id -u)" -ne 0 ]; then
+        error "Script must be run as root. Use sudo or switch to root user."
+    fi
+}
+
+# =============================================
+# 1. INITIAL SETUP
+# =============================================
+check_root
+
+# Check kernel version
+KERNEL_VER=$(uname -r)
+status "Detected kernel version: $KERNEL_VER"
+if [[ $KERNEL_VER =~ ^3\. ]]; then
+    warning "Old kernel detected (v3.x) - some optimizations may not be available"
 fi
 
 # =============================================
-# 1. SYSTEM PREPARATION
+# 2. SYSTEM PREPARATION
 # =============================================
 status "Preparing system for Ethereum node optimization..."
 
@@ -31,12 +53,24 @@ DEBIAN_FRONTEND=noninteractive apt-get -y upgrade >/dev/null
 DEBIAN_FRONTEND=noninteractive apt-get -y autoremove >/dev/null
 apt-get clean >/dev/null
 
+# Install basic dependencies
+status "Installing basic dependencies..."
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    curl git jq bc pv htop iotop iftop sysstat \
+    libssl-dev cmake build-essential clang >/dev/null
+
 # =============================================
-# 2. SYSTEM LIMITS & KERNEL OPTIMIZATION
+# 3. SYSTEM LIMITS & KERNEL OPTIMIZATION
 # =============================================
 status "Optimizing system limits and kernel parameters..."
 
-# 2.1 System-wide limits
+# 3.1 Create ethereum user if not exists
+if ! id "$ETH_USER" &>/dev/null; then
+    useradd -r -s /bin/false -m -d "/home/$ETH_USER" "$ETH_USER"
+    success "Created user: $ETH_USER"
+fi
+
+# 3.2 System-wide limits
 cat <<EOF > /etc/security/limits.d/99-ethereum.conf
 # Ethereum node optimization
 * soft nofile 1048576
@@ -49,7 +83,7 @@ cat <<EOF > /etc/security/limits.d/99-ethereum.conf
 * hard stack unlimited
 EOF
 
-# 2.2 Systemd limits
+# 3.3 Systemd limits
 mkdir -p /etc/systemd/system.conf.d/
 cat <<EOF > /etc/systemd/system.conf.d/ethereum-limits.conf
 [Manager]
@@ -59,7 +93,7 @@ DefaultLimitMEMLOCK=infinity
 DefaultLimitSTACK=infinity
 EOF
 
-# 2.3 Kernel parameters (optimized for high throughput)
+# 3.4 Kernel parameters (optimized for high throughput)
 cat <<EOF > /etc/sysctl.d/99-ethereum.conf
 # Network
 net.core.somaxconn=32768
@@ -92,14 +126,22 @@ fs.inotify.max_user_watches=524288
 # ETH-specific
 kernel.pid_max=4194304
 kernel.threads-max=999999
-kernel.sched_migration_cost_ns=5000000
 EOF
 
+# Conditionally add sched_migration_cost_ns if supported
+if [ -e /proc/sys/kernel/sched_migration_cost_ns ]; then
+    echo "kernel.sched_migration_cost_ns=5000000" >> /etc/sysctl.d/99-ethereum.conf
+fi
+
 # Apply kernel settings
-sysctl -p /etc/sysctl.d/99-ethereum.conf >/dev/null
+if ! sysctl -p /etc/sysctl.d/99-ethereum.conf >/dev/null 2>&1; then
+    warning "Some sysctl parameters could not be applied (expected on some kernels)"
+else
+    success "Kernel parameters applied"
+fi
 
 # =============================================
-# 3. DISABLE UNNECESSARY SERVICES
+# 4. DISABLE UNNECESSARY SERVICES
 # =============================================
 status "Disabling unnecessary services..."
 
@@ -118,16 +160,16 @@ for service in "${services_to_disable[@]}"; do
         systemctl disable --now "$service" >/dev/null
         success "Disabled $service"
     else
-        success "$service already disabled"
+        warning "$service already disabled"
     fi
 done
 
 # =============================================
-# 4. CPU & DISK OPTIMIZATION
+# 5. CPU & DISK OPTIMIZATION
 # =============================================
 status "Optimizing CPU and disk performance..."
 
-# 4.1 Set CPU governor to performance
+# 5.1 Set CPU governor to performance
 if [ -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
     echo "performance" | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null
     success "Set CPU to performance mode"
@@ -135,7 +177,7 @@ else
     warning "Cannot set CPU governor (cloud VPS detected)"
 fi
 
-# 4.2 SSD/NVMe tuning
+# 5.2 SSD/NVMe tuning
 if lsblk -d -o rota | grep -q '0'; then
     cat <<EOF > /etc/udev/rules.d/60-ssd.rules
 ACTION=="add|change", KERNEL=="sd[a-z]|nvme[0-9]n[0-9]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none", ATTR{queue/nr_requests}="256", ATTR{queue/read_ahead_kb}="4096"
@@ -144,7 +186,7 @@ EOF
     success "Applied SSD/NVMe optimizations"
 fi
 
-# 4.3 Disable Transparent HugePages
+# 5.3 Disable Transparent HugePages
 echo never > /sys/kernel/mm/transparent_hugepage/enabled
 echo never > /sys/kernel/mm/transparent_hugepage/defrag
 cat <<EOF >> /etc/rc.local
@@ -179,11 +221,12 @@ systemctl restart systemd-journald
 # =============================================
 echo -e "\n${GREEN}✔ System optimization complete!${NC}"
 echo -e "${YELLOW}REQUIRED: You must reboot the system to apply all changes${NC}\n"
-echo -e "${BLUE}After reboot, you can:${NC}"
 
-echo -e "\n${BLUE}Verification commands after reboot:${NC}"
+echo -e "${BLUE}Verification commands after reboot:${NC}"
 echo "1. Check limits: ${GREEN}ulimit -n${NC} (should show 1048576)"
 echo "2. Check kernel settings: ${GREEN}sysctl net.core.somaxconn vm.swappiness${NC}"
 echo "3. Check CPU governor: ${GREEN}cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor${NC}"
+echo "4. Check hugepages: ${GREEN}cat /sys/kernel/mm/transparent_hugepage/enabled${NC}"
 
 echo -e "\n${RED}Important:${NC} Run this command to reboot: ${GREEN}reboot${NC}"
+echo -e "\n${BLUE}After reboot, you can proceed with Ethereum client installation.${NC}"
