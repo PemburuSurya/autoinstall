@@ -19,22 +19,31 @@ if [ "$(id -u)" -ne 0 ]; then
     error "Script must be run as root. Use sudo or switch to root user."
 fi
 
+# Check system
+if [ ! -f /etc/os-release ]; then
+    error "Unsupported Linux distribution"
+fi
+
 # 1. System Limits Optimization
 status "Optimizing system limits..."
 
 # Configure system-wide limits
-if ! grep -q "# Kuzco Optimization" /etc/security/limits.conf; then
+if ! grep -q "# Ethereum Node Optimization" /etc/security/limits.conf; then
     cat <<EOF >> /etc/security/limits.conf
 
-# Kuzco Optimization
+# Ethereum Node Optimization
 * soft nofile 1048576
 * hard nofile 1048576
-* soft nproc unlimited
-* hard nproc unlimited
+* soft nproc 65536
+* hard nproc 65536
+* soft memlock unlimited
+* hard memlock unlimited
 root soft nofile 1048576
 root hard nofile 1048576
 root soft nproc unlimited
 root hard nproc unlimited
+root soft memlock unlimited
+root hard memlock unlimited
 EOF
     success "Added limits to /etc/security/limits.conf"
 else
@@ -42,63 +51,94 @@ else
 fi
 
 # Configure systemd limits
-if [ ! -f /etc/systemd/system.conf.d/limits.conf ]; then
-    mkdir -p /etc/systemd/system.conf.d/
-    cat <<EOF > /etc/systemd/system.conf.d/limits.conf
+mkdir -p /etc/systemd/system.conf.d/
+cat <<EOF > /etc/systemd/system.conf.d/limits.conf
 [Manager]
 DefaultLimitNOFILE=1048576
-DefaultLimitNPROC=infinity
+DefaultLimitNPROC=65536
+DefaultLimitMEMLOCK=infinity
 EOF
-    success "Added systemd limits configuration"
-else
-    success "Systemd limits already configured (skipped)"
-fi
 
 # Configure pam limits
 if [ -f /etc/pam.d/common-session ] && ! grep -q "pam_limits.so" /etc/pam.d/common-session; then
     echo "session required pam_limits.so" >> /etc/pam.d/common-session
-    success "Added PAM limits configuration"
-elif [ ! -f /etc/pam.d/common-session ]; then
-    warning "PAM common-session file not found"
-else
-    success "PAM limits already configured (skipped)"
 fi
 
 # 2. Kernel Parameters Optimization
 status "Optimizing kernel parameters..."
 
-if [ ! -f /etc/sysctl.d/99-kuzco.conf ]; then
-    cat <<EOF > /etc/sysctl.d/99-kuzco.conf
+cat <<EOF > /etc/sysctl.d/99-ethereum.conf
 # Network
 net.core.somaxconn=8192
 net.ipv4.tcp_max_syn_backlog=8192
+net.core.netdev_max_backlog=16384
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+net.ipv4.tcp_rmem=4096 87380 16777216
+net.ipv4.tcp_wmem=4096 65536 16777216
+net.ipv4.tcp_max_tw_buckets=2000000
+net.ipv4.tcp_tw_reuse=1
+net.ipv4.tcp_fastopen=3
+net.ipv4.ip_local_port_range=1024 65535
 
 # Memory
-vm.swappiness=10
-vm.dirty_ratio=60
-vm.dirty_background_ratio=2
+vm.swappiness=1
+vm.dirty_ratio=40
+vm.dirty_background_ratio=10
+vm.overcommit_memory=1
+vm.overcommit_ratio=100
+vm.max_map_count=262144
 
 # File handles
-fs.file-max=1048576
-fs.nr_open=1048576
+fs.file-max=2097152
+fs.nr_open=2097152
+fs.aio-max-nr=1048576
+
+# Connection tracking
+net.netfilter.nf_conntrack_max=1000000
+net.nf_conntrack_max=1000000
 
 # Other
 kernel.pid_max=4194304
+kernel.threads-max=999999
 EOF
-    sysctl -p /etc/sysctl.d/99-kuzco.conf >/dev/null 2>&1
-    success "Kernel parameters optimized"
-else
-    success "Kernel parameters already optimized (skipped)"
+
+sysctl -p /etc/sysctl.d/99-ethereum.conf >/dev/null 2>&1
+
+# 3. Ethereum-Specific Optimizations
+status "Applying Ethereum-specific optimizations..."
+
+# CPU Performance Governor
+if [ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
+    echo "performance" | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null
 fi
 
-# 3. Disable Unnecessary Services
+# Disk I/O Scheduler
+for disk in /sys/block/sd*; do
+    if [ -e "$disk/queue/scheduler" ]; then
+        echo "deadline" > "$disk/queue/scheduler" 2>/dev/null || \
+        echo "none" > "$disk/queue/scheduler" 2>/dev/null
+    fi
+done
+
+# Time Synchronization (critical for consensus)
+timedatectl set-ntp true
+systemctl restart systemd-timesyncd
+
+# 4. Disable Unnecessary Services
 status "Disabling unnecessary services..."
 
 services_to_disable=(
     avahi-daemon
     cups
+    cups-browsed
     bluetooth
     ModemManager
+    whoopsie
+    apport
+    apt-daily
+    apt-daily-upgrade
+    unattended-upgrades
 )
 
 for service in "${services_to_disable[@]}"; do
@@ -106,40 +146,53 @@ for service in "${services_to_disable[@]}"; do
         systemctl disable --now "$service" >/dev/null 2>&1 && \
             success "Disabled $service" || \
             warning "Failed to disable $service"
-    else
-        success "$service already disabled (skipped)"
     fi
 done
 
-# 5. Final System Updates
-status "Performing final updates..."
+# 5. Filesystem Optimizations
+status "Configuring filesystem optimizations..."
 
-if command -v apt-get >/dev/null; then
-    apt-get update >/dev/null 2>&1
-    DEBIAN_FRONTEND=noninteractive apt-get -y upgrade >/dev/null 2>&1 || warning "Update failed"
-    apt-get -y autoremove >/dev/null 2>&1
-    apt-get clean >/dev/null 2>&1
-elif command -v yum >/dev/null; then
-    yum -y update >/dev/null 2>&1 || warning "Update failed"
-    yum -y autoremove >/dev/null 2>&1
-    yum clean all >/dev/null 2>&1
-elif command -v dnf >/dev/null; then
-    dnf -y update >/dev/null 2>&1 || warning "Update failed"
-    dnf -y autoremove >/dev/null 2>&1
-    dnf clean all >/dev/null 2>&1
+# Add noatime to fstab
+if ! grep -q "noatime" /etc/fstab; then
+    sed -i 's/\(ext4.*\)defaults/\1defaults,noatime,nodiratime,errors=remount-ro/' /etc/fstab
 fi
 
-# 5. Apply All Changes
+# Increase inotify watches (useful for Geth)
+echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.d/99-ethereum.conf
+
+# 6. Network Time Protocol (NTP) Configuration
+status "Configuring NTP..."
+
+cat <<EOF > /etc/systemd/timesyncd.conf
+[Time]
+NTP=0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org
+FallbackNTP=ntp.ubuntu.com
+RootDistanceMaxSec=1
+PollIntervalMinSec=32
+PollIntervalMaxSec=2048
+EOF
+
+systemctl restart systemd-timesyncd
+
+# 7. Apply All Changes
 status "Applying all changes..."
-systemctl daemon-reload >/dev/null 2>&1 && \
-    success "Systemd daemon reloaded" || \
-    warning "Failed to reload systemd daemon"
+sysctl --system >/dev/null 2>&1
+systemctl daemon-reload >/dev/null 2>&1
 
+# 8. Verification
+status "Verification..."
 echo -e "\n${GREEN}✔ Optimization complete!${NC}"
-echo -e "${YELLOW}Some changes require a reboot to take full effect.${NC}"
-echo -e "Run this command to reboot: ${GREEN}reboot${NC}"
+echo -e "\n${BLUE}=== Verification Commands ===${NC}"
+echo -e "1. Limits: ${GREEN}ulimit -a${NC}"
+echo -e "2. Kernel: ${GREEN}sysctl net.core.somaxconn vm.swappiness fs.file-max${NC}"
+echo -e "3. CPU Gov: ${GREEN}cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor${NC}"
+echo -e "4. Time: ${GREEN}timedatectl status${NC}"
+echo -e "5. Services: ${GREEN}systemctl list-unit-files | grep -E 'avahi|cups|bluetooth|ModemManager'${NC}"
 
-echo -e "\n${BLUE}Verification commands after reboot:${NC}"
-echo "1. Check file limits: ${GREEN}ulimit -n${NC} (should show 1048576)"
-echo "2. Check kernel settings: ${GREEN}sysctl -a | grep -e file_max -e swappiness${NC}"
-echo "3. Check disabled services: ${GREEN}systemctl list-unit-files | grep -E 'avahi|cups|bluetooth|ModemManager'${NC}"
+echo -e "\n${YELLOW}⚠ Some changes require a reboot to take full effect.${NC}"
+echo -e "Run: ${GREEN}reboot${NC} then verify with above commands.\n"
+
+echo -e "${BLUE}For Ethereum node monitoring consider installing:${NC}"
+echo -e "1. Prometheus: ${GREEN}apt install prometheus${NC}"
+echo -e "2. Node Exporter: ${GREEN}apt install prometheus-node-exporter${NC}"
+echo -e "3. Grafana: ${GREEN}apt install grafana${NC}"
